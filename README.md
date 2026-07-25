@@ -1,6 +1,9 @@
-# Sunset/Sunrise Discovery App
+# Vesper
 
-Monorepo: `backend/` (FastAPI) and `client/` (Flutter, added in Phase 5).
+Personalized sunrise/sunset discovery app — ranks real, nearby public viewing
+spots against your own sky-color taste, rather than a generic quality score.
+
+Monorepo: `backend/` (FastAPI) and `client/` (Flutter, added in the next phase).
 
 ## Backend — local setup
 
@@ -28,5 +31,7 @@ pytest
 
 ## Build order
 
-See project brief / conversation history for full phase breakdown. Current phase:
-Phase 0 (project scaffold) — complete. Next: Phase 1, Astronomy + Weather Service.
+See project brief / conversation history for full phase breakdown. Backend
+recommendation loop is complete: Astronomy, Weather, Scoring, and Places
+services, combined behind `POST /session`. Next: the Flutter client's
+session-setup and results screens.
