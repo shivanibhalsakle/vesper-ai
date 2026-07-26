@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.schemas.session import LocationResult, SessionRequest, SessionResponse, SunEvent
 from app.services.astronomy import get_sun_events
+from app.services.explanation import generate_explanation
 from app.services.places import find_candidate_locations
 from app.services.scoring import score_location
 from app.services.weather import fetch_hourly_forecast
@@ -21,7 +22,7 @@ def create_session(request: SessionRequest) -> SessionResponse:
         request.lat, request.lon, request.radius_km, request.place_types
     )[:MAX_CANDIDATES_SCORED]
 
-    results = []
+    scored = []
     for candidate in candidates:
         sun_events = get_sun_events(candidate.lat, candidate.lon, request.date, request.tz_name)
         event_time = (
@@ -31,6 +32,18 @@ def create_session(request: SessionRequest) -> SessionResponse:
             candidate.lat, candidate.lon, request.date, request.tz_name
         )
         score = score_location(event_time, forecast.hourly, request.preferences)
+        scored.append((candidate, event_time, score))
+
+    scored.sort(key=lambda item: item[2].preference_match_score, reverse=True)
+
+    # Explanation Generator is an external LLM call — only run it for the
+    # locations we're actually returning, not every scored candidate.
+    results = []
+    for candidate, event_time, score in scored[:TOP_N_RESULTS]:
+        try:
+            explanation = generate_explanation(candidate, score, request.preferences)
+        except Exception:
+            explanation = None
 
         results.append(
             LocationResult(
@@ -47,8 +60,8 @@ def create_session(request: SessionRequest) -> SessionResponse:
                 color_probabilities=score.color_probabilities,
                 rain_or_unsafe_alert=score.rain_or_unsafe_alert,
                 preference_match_score=score.preference_match_score,
+                explanation=explanation,
             )
         )
 
-    results.sort(key=lambda r: r.preference_match_score, reverse=True)
-    return SessionResponse(recommendations=results[:TOP_N_RESULTS])
+    return SessionResponse(recommendations=results)

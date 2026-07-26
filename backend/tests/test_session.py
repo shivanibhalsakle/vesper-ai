@@ -81,9 +81,14 @@ def fake_fetch_hourly_forecast(lat, lon, on_date, tz_name="UTC", client=None):
     return WeatherForecast(hourly=[FORECAST_BY_LAT[lat]])
 
 
+def fake_generate_explanation(location, score, preferences, client=None):
+    return f"Fake explanation for {location.name}"
+
+
 def _patch_network(monkeypatch):
     monkeypatch.setattr(session_module, "find_candidate_locations", fake_find_candidate_locations)
     monkeypatch.setattr(session_module, "fetch_hourly_forecast", fake_fetch_hourly_forecast)
+    monkeypatch.setattr(session_module, "generate_explanation", fake_generate_explanation)
 
 
 def _request_body(**overrides):
@@ -148,6 +153,7 @@ def test_session_caps_results_at_five(monkeypatch):
         lambda *a, **k: many_candidates,
     )
     monkeypatch.setattr(session_module, "fetch_hourly_forecast", fake_fetch_hourly_forecast)
+    monkeypatch.setattr(session_module, "generate_explanation", fake_generate_explanation)
 
     response = client.post("/session", json=_request_body())
 
@@ -163,3 +169,28 @@ def test_session_surfaces_rain_alert_separately(monkeypatch):
     overcast = next(r for r in body["recommendations"] if r["name"] == "Overcast Beach")
     assert overcast["rain_or_unsafe_alert"] is None  # 20% precip, below alert threshold
     assert overcast["visibility_likelihood"] < 0.2
+
+
+def test_session_populates_explanation_for_returned_locations_only(monkeypatch):
+    _patch_network(monkeypatch)
+
+    response = client.post("/session", json=_request_body())
+    body = response.json()
+
+    for result in body["recommendations"]:
+        assert result["explanation"] == f"Fake explanation for {result['name']}"
+
+
+def test_session_explanation_failure_does_not_break_the_request(monkeypatch):
+    _patch_network(monkeypatch)
+
+    def failing_explanation(location, score, preferences, client=None):
+        raise RuntimeError("Claude API unavailable")
+
+    monkeypatch.setattr(session_module, "generate_explanation", failing_explanation)
+
+    response = client.post("/session", json=_request_body())
+    body = response.json()
+
+    assert response.status_code == 200
+    assert all(r["explanation"] is None for r in body["recommendations"])
