@@ -33,5 +33,29 @@ services:
       redis:
         condition: service_started
 
+  worker:
+    build: .
+    env_file: .env
+    volumes:
+      - .:/code
+    command: celery -A app.workers.celery_app worker --loglevel=info
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  beat:
+    build: .
+    env_file: .env
+    volumes:
+      - .:/code
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
 volumes:
   postgres_data:
