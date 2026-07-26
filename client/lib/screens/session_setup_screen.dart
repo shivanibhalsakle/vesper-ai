@@ -1,0 +1,178 @@
+import 'package:flutter/material.dart';
+
+import '../models/location_type.dart';
+import '../models/session_request.dart';
+import 'preference_screen.dart';
+
+class SessionSetupScreen extends StatefulWidget {
+  const SessionSetupScreen({super.key});
+
+  @override
+  State<SessionSetupScreen> createState() => _SessionSetupScreenState();
+}
+
+class _SessionSetupScreenState extends State<SessionSetupScreen> {
+  // Prefilled with Brooklyn Bridge Park (our test location throughout the
+  // backend build) since a proper location picker / geolocation is a
+  // follow-up, not part of this scaffold.
+  final _latController = TextEditingController(text: '40.7003');
+  final _lonController = TextEditingController(text: '-73.9967');
+
+  SunEvent _event = SunEvent.sunset;
+  DateTime _date = DateTime.now();
+  double _radiusKm = 5.0;
+  final Set<LocationType> _placeTypes = {};
+
+  @override
+  void dispose() {
+    _latController.dispose();
+    _lonController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() => _date = picked);
+    }
+  }
+
+  void _goToPreferences() {
+    final lat = double.tryParse(_latController.text);
+    final lon = double.tryParse(_lonController.text);
+    if (lat == null || lon == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid latitude and longitude.')),
+      );
+      return;
+    }
+
+    final types = _placeTypes.isEmpty ? LocationType.values.toList() : _placeTypes.toList();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PreferenceScreen(
+          lat: lat,
+          lon: lon,
+          event: _event,
+          date: _date,
+          radiusKm: _radiusKm,
+          placeTypes: types,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Vesper')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Where and when?', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _latController,
+                    decoration: const InputDecoration(labelText: 'Latitude'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _lonController,
+                    decoration: const InputDecoration(labelText: 'Longitude'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SegmentedButton<SunEvent>(
+              segments: const [
+                ButtonSegment(value: SunEvent.sunrise, label: Text('Sunrise')),
+                ButtonSegment(value: SunEvent.sunset, label: Text('Sunset')),
+              ],
+              selected: {_event},
+              onSelectionChanged: (selection) => setState(() => _event = selection.first),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Date'),
+              subtitle: Text('${_date.year}-${_date.month.toString().padLeft(2, '0')}-'
+                  '${_date.day.toString().padLeft(2, '0')}'),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: _pickDate,
+            ),
+            const SizedBox(height: 16),
+            Text('Travel radius: ${_radiusKm.toStringAsFixed(0)} km'),
+            Slider(
+              value: _radiusKm,
+              min: 1,
+              max: 50,
+              divisions: 49,
+              label: '${_radiusKm.toStringAsFixed(0)} km',
+              onChanged: (value) => setState(() => _radiusKm = value),
+            ),
+            const SizedBox(height: 16),
+            Text('Place type', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: LocationType.values.map((type) {
+                final selected = _placeTypes.contains(type);
+                return FilterChip(
+                  label: Text(type.label),
+                  selected: selected,
+                  onSelected: (isSelected) {
+                    setState(() {
+                      if (isSelected) {
+                        _placeTypes.add(type);
+                      } else {
+                        _placeTypes.remove(type);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'No selection = no preference (all types included).',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _goToPreferences,
+                child: const Text('Next: sky preferences'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

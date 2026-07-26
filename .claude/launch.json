@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vesper-web",
+      "runtimeExecutable": "C:\\Users\\Shivani12\\Downloads\\Masters\\NYU\\Projects\\sunset-app\\client\\run_web.bat",
+      "runtimeArgs": [],
+      "port": 5050
+    }
+  ]
+}
