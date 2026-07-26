@@ -22,8 +22,16 @@ def fetch_hourly_forecast(
     lon: float,
     on_date: date,
     tz_name: str = "UTC",
+    end_date: date | None = None,
     client: httpx.Client | None = None,
 ) -> WeatherForecast:
+    """Fetches hourly forecast from on_date through end_date (inclusive).
+
+    end_date defaults to on_date for a single-day forecast. Open-Meteo
+    accepts a date range in one call — Trip-Window Mode uses this to fetch
+    a whole trip's forecast per candidate location in a single request
+    instead of one call per (location, day) pair.
+    """
     owns_client = client is None
     client = client or httpx.Client()
     try:
@@ -34,7 +42,7 @@ def fetch_hourly_forecast(
                 "longitude": lon,
                 "hourly": ",".join(HOURLY_VARIABLES),
                 "start_date": on_date.isoformat(),
-                "end_date": on_date.isoformat(),
+                "end_date": (end_date or on_date).isoformat(),
                 "timezone": tz_name,
             },
         )
