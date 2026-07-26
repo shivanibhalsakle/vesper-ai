@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.session import router as session_router
+from app.api.simulation import router as simulation_router
 
 app = FastAPI(title="Vesper API")
 
@@ -17,3 +18,4 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(session_router)
+app.include_router(simulation_router)
