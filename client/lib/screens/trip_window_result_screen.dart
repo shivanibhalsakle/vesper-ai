@@ -1,0 +1,187 @@
+import 'package:flutter/material.dart';
+
+import '../models/session_request.dart';
+import '../models/simulation.dart';
+import '../models/trip_window.dart';
+import '../utils/format.dart';
+import 'simulation_screen.dart';
+
+class TripWindowResultScreen extends StatelessWidget {
+  final TripWindowResponse response;
+  final SunEvent event;
+
+  const TripWindowResultScreen({super.key, required this.response, required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final best = response.best;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Best day for your trip')),
+      body: best == null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'No good match found across ${response.daysConsidered} days and '
+                  '${response.candidatesConsidered} locations. Try a wider radius or '
+                  'more place types.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: _BestDayCard(result: best, event: event),
+            ),
+    );
+  }
+}
+
+class _BestDayCard extends StatelessWidget {
+  final TripWindowResult result;
+  final SunEvent event;
+
+  const _BestDayCard({required this.result, required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final eventLabel = event.label.toLowerCase();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(result.name, style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                          '${result.type.label} · ${result.distanceKm.toStringAsFixed(1)} km away'),
+                      Text(result.date, style: Theme.of(context).textTheme.titleMedium),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(formatPercent(result.preferenceMatchScore),
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const Text('match'),
+                  ],
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            if (result.rainOrUnsafeAlert != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber,
+                        color: Theme.of(context).colorScheme.onErrorContainer),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        result.rainOrUnsafeAlert!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            Text('${event.label} at ${formatClockTime(result.eventTime)}'),
+            Text(formatArrivalOffset(result.recommendedArrivalOffsetMinutes, eventLabel)),
+            Text('Best viewing window: ${formatClockTime(result.bestViewingWindowStart)} – '
+                '${formatClockTime(result.bestViewingWindowEnd)}'),
+            const SizedBox(height: 12),
+            Text('Sun visibility: ${formatPercent(result.visibilityLikelihood)}'),
+            Text(
+              result.cloudCoverSummary[0].toUpperCase() + result.cloudCoverSummary.substring(1),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                _ColorChip('Pink', result.colorProbabilities.pink, Colors.pinkAccent),
+                _ColorChip('Purple', result.colorProbabilities.purple, Colors.deepPurpleAccent),
+                _ColorChip('Orange', result.colorProbabilities.orange, Colors.orangeAccent),
+                _ColorChip('Red', result.colorProbabilities.red, Colors.redAccent),
+                _ColorChip('Golden', result.colorProbabilities.golden, Colors.amber),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (result.explanation != null)
+              Text(
+                result.explanation!,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(fontStyle: FontStyle.italic),
+              )
+            else
+              Text(
+                'Personalized explanation coming soon (Explanation Generator).',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('Preview sky'),
+                onPressed: () => _openPreview(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openPreview(BuildContext context) {
+    final request = SimulationRequest(
+      locationName: result.name,
+      locationType: result.type,
+      event: event,
+      cloudCoverSummary: result.cloudCoverSummary,
+      visibilityLikelihood: result.visibilityLikelihood,
+      colorProbabilities: result.colorProbabilities,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SimulationScreen(request: request, locationName: result.name),
+      ),
+    );
+  }
+}
+
+class _ColorChip extends StatelessWidget {
+  final String label;
+  final double probability;
+  final Color color;
+
+  const _ColorChip(this.label, this.probability, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: CircleAvatar(backgroundColor: color, radius: 6),
+      label: Text('$label ${formatPercent(probability)}'),
+    );
+  }
+}

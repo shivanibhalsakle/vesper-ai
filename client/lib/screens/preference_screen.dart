@@ -5,12 +5,15 @@ import '../models/preference_profile.dart';
 import '../models/session_request.dart';
 import '../services/api_client.dart';
 import 'results_screen.dart';
+import '../models/trip_window.dart';
+import 'trip_window_result_screen.dart';
 
 class PreferenceScreen extends StatefulWidget {
   final double lat;
   final double lon;
   final SunEvent event;
   final DateTime date;
+  final DateTimeRange? dateRange;
   final double radiusKm;
   final List<LocationType> placeTypes;
 
@@ -20,6 +23,7 @@ class PreferenceScreen extends StatefulWidget {
     required this.lon,
     required this.event,
     required this.date,
+    this.dateRange,
     required this.radiusKm,
     required this.placeTypes,
   });
@@ -54,25 +58,44 @@ class _PreferenceScreenState extends State<PreferenceScreen> {
       unobstructedHorizon: _unobstructedHorizon,
     );
 
-    final request = SessionRequest(
-      lat: widget.lat,
-      lon: widget.lon,
-      event: widget.event,
-      date: widget.date,
-      radiusKm: widget.radiusKm,
-      placeTypes: widget.placeTypes,
-      preferences: preferences,
-    );
-
     setState(() => _loading = true);
     try {
-      final response = await ApiClient().fetchSession(request);
-      if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ResultsScreen(response: response, event: widget.event),
-        ),
-      );
+      if (widget.dateRange != null) {
+        final request = TripWindowRequest(
+          lat: widget.lat,
+          lon: widget.lon,
+          event: widget.event,
+          startDate: widget.dateRange!.start,
+          endDate: widget.dateRange!.end,
+          radiusKm: widget.radiusKm,
+          placeTypes: widget.placeTypes,
+          preferences: preferences,
+        );
+        final response = await ApiClient().fetchTripWindow(request);
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TripWindowResultScreen(response: response, event: widget.event),
+          ),
+        );
+      } else {
+        final request = SessionRequest(
+          lat: widget.lat,
+          lon: widget.lon,
+          event: widget.event,
+          date: widget.date,
+          radiusKm: widget.radiusKm,
+          placeTypes: widget.placeTypes,
+          preferences: preferences,
+        );
+        final response = await ApiClient().fetchSession(request);
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ResultsScreen(response: response, event: widget.event),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +180,7 @@ class _PreferenceScreenState extends State<PreferenceScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Get recommendations'),
+                    : const Text('Find best day'),
               ),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../models/trip_window.dart';
 
 import 'package:http/http.dart' as http;
 
@@ -33,6 +34,20 @@ class ApiClient {
 
     return SessionResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
+
+  Future<TripWindowResponse> fetchTripWindow(TripWindowRequest request) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/trip-window'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(request.toJson()),
+  );
+
+  if (response.statusCode != 200) {
+    throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+  }
+
+  return TripWindowResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+}
 
   Future<SimulationResponse> fetchSimulation(SimulationRequest request) async {
     final response = await http.post(

@@ -22,6 +22,8 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
   DateTime _date = DateTime.now();
   double _radiusKm = 5.0;
   final Set<LocationType> _placeTypes = {};
+    bool _isDateRange = false;
+  DateTimeRange? _dateRange;
 
   @override
   void dispose() {
@@ -42,12 +44,34 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
     }
   }
 
+    Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+      initialDateRange: _dateRange,
+    );
+    if (picked != null) {
+      setState(() => _dateRange = picked);
+    }
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
   void _goToPreferences() {
     final lat = double.tryParse(_latController.text);
     final lon = double.tryParse(_lonController.text);
     if (lat == null || lon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Enter a valid latitude and longitude.')),
+      );
+      return;
+    }
+    if (_isDateRange && _dateRange == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Pick a date range for your trip.")),
       );
       return;
     }
@@ -61,6 +85,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
           lon: lon,
           event: _event,
           date: _date,
+          dateRange: _isDateRange ? _dateRange : null,
           radiusKm: _radiusKm,
           placeTypes: types,
         ),
@@ -113,15 +138,39 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
               selected: {_event},
               onSelectionChanged: (selection) => setState(() => _event = selection.first),
             ),
-            const SizedBox(height: 24),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Date'),
-              subtitle: Text('${_date.year}-${_date.month.toString().padLeft(2, '0')}-'
-                  '${_date.day.toString().padLeft(2, '0')}'),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: _pickDate,
+                        const SizedBox(height: 24),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, label: Text('Single date')),
+                ButtonSegment(value: true, label: Text('Date range (trip)')),
+              ],
+              selected: {_isDateRange},
+              onSelectionChanged: (selection) => setState(() => _isDateRange = selection.first),
             ),
+            const SizedBox(height: 8),
+            if (_isDateRange)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Trip dates'),
+                subtitle: Text(
+                  _dateRange == null
+                      ? "Tap to choose your trip's date range"
+                      : '${_formatDate(_dateRange!.start)} – ${_formatDate(_dateRange!.end)}',
+                ),
+                trailing: const Icon(Icons.date_range),
+                onTap: _pickDateRange,
+              )
+            else
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Date'),
+                subtitle: Text(_formatDate(_date)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: _pickDate,
+              ),
+            const SizedBox(height: 16),
+
+            
             const SizedBox(height: 16),
             Text('Travel radius: ${_radiusKm.toStringAsFixed(0)} km'),
             Slider(
