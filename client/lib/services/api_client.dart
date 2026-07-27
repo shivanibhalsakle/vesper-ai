@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/session_request.dart';
 import '../models/session_response.dart';
+import '../models/simulation.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -31,5 +32,19 @@ class ApiClient {
     }
 
     return SessionResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<SimulationResponse> fetchSimulation(SimulationRequest request) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/simulate'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(request.toJson()),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+    }
+
+    return SimulationResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 }

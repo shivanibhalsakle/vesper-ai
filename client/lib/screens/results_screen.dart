@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../models/session_request.dart';
 import '../models/session_response.dart';
+import '../models/simulation.dart';
 import '../utils/format.dart';
+import 'simulation_screen.dart';
 
 class ResultsScreen extends StatelessWidget {
   final SessionResponse response;
@@ -117,15 +119,47 @@ class _LocationCard extends StatelessWidget {
                 _ColorChip('Golden', result.colorProbabilities.golden, Colors.amber),
               ],
             ),
-            if (result.explanation == null) ...[
-              const SizedBox(height: 12),
+            const SizedBox(height: 12),
+            if (result.explanation != null)
+              Text(
+                result.explanation!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontStyle: FontStyle.italic,
+                    ),
+              )
+            else
               Text(
                 'Personalized explanation coming soon (Explanation Generator).',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-            ],
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('Preview sky'),
+                onPressed: () => _openPreview(context),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _openPreview(BuildContext context) {
+    final request = SimulationRequest(
+      locationName: result.name,
+      locationType: result.type,
+      event: event,
+      cloudCoverSummary: result.cloudCoverSummary,
+      visibilityLikelihood: result.visibilityLikelihood,
+      colorProbabilities: result.colorProbabilities,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SimulationScreen(request: request, locationName: result.name),
       ),
     );
   }

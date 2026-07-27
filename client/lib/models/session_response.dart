@@ -22,6 +22,14 @@ class ColorProbabilities {
         red: (json['red'] as num).toDouble(),
         golden: (json['golden'] as num).toDouble(),
       );
+
+  Map<String, dynamic> toJson() => {
+        'pink': pink,
+        'purple': purple,
+        'orange': orange,
+        'red': red,
+        'golden': golden,
+      };
 }
 
 class LocationResult {
