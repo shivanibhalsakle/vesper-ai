@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/sunset"
     redis_url: str = "redis://localhost:6379/0"
     anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    firebase_credentials_path: str = ""
 
 
 @lru_cache

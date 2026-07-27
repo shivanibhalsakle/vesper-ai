@@ -7,6 +7,9 @@ enum SunEvent {
 
   String get apiValue => name;
   String get label => name[0].toUpperCase() + name.substring(1);
+
+  static SunEvent fromApiValue(String value) =>
+      SunEvent.values.firstWhere((e) => e.apiValue == value);
 }
 
 class SessionRequest {

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/location_type.dart';
 import '../models/session_request.dart';
 import 'preference_screen.dart';
+import 'saved_profiles_screen.dart';
+
 
 class SessionSetupScreen extends StatefulWidget {
   const SessionSetupScreen({super.key});
@@ -12,6 +14,7 @@ class SessionSetupScreen extends StatefulWidget {
 }
 
 class _SessionSetupScreenState extends State<SessionSetupScreen> {
+
   // Prefilled with Brooklyn Bridge Park (our test location throughout the
   // backend build) since a proper location picker / geolocation is a
   // follow-up, not part of this scaffold.
@@ -96,7 +99,20 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Vesper')),
+      appBar: AppBar(
+        title: const Text('Vesper'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bookmark_outline),
+            tooltip: 'Saved searches',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SavedProfilesScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

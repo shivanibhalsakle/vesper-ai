@@ -4,6 +4,9 @@ from app.schemas.location import LocationType
 from app.schemas.scoring import ColorProbabilities
 from app.schemas.session import SunEvent
 from app.schemas.simulation import SimulationRequest, SimulationResponse
+from openai import OpenAI
+from app.core.config import get_settings
+
 
 LOCATION_TYPE_FOREGROUND = {
     LocationType.BEACH: "a sandy beach with the horizon over open water",
@@ -28,6 +31,31 @@ class UnavailableImageProvider(ImageGenProvider):
 
     def generate_image(self, prompt: str) -> str:
         raise NotImplementedError("No image-generation provider configured yet.")
+
+class OpenAIImageProvider(ImageGenProvider):
+    """Generates images via OpenAI's gpt-image-2 model. The API only returns
+    base64-encoded image data (no hosted URL), so this returns a data: URI —
+    the Flutter client needs Image.memory (not Image.network) to render it.
+    """
+
+    def __init__(self, client: OpenAI | None = None):
+        self._client = client or OpenAI(api_key=get_settings().openai_api_key)
+
+    def generate_image(self, prompt: str) -> str:
+        result = self._client.images.generate(
+            model="gpt-image-2",
+            prompt=prompt,
+            size="1024x1024",
+            quality="medium",
+        )
+        b64_data = result.data[0].b64_json
+        return f"data:image/png;base64,{b64_data}"
+
+
+def _get_default_provider() -> ImageGenProvider:
+    if get_settings().openai_api_key:
+        return OpenAIImageProvider()
+    return UnavailableImageProvider()
 
 
 def build_simulation_prompt(request: SimulationRequest) -> str:
@@ -82,7 +110,7 @@ def _sun_visibility_description(visibility_likelihood: float) -> str:
 def generate_simulation(
     request: SimulationRequest, provider: ImageGenProvider | None = None
 ) -> SimulationResponse:
-    provider = provider or UnavailableImageProvider()
+    provider = provider or _get_default_provider()
     prompt = build_simulation_prompt(request)
 
     try:

@@ -9,6 +9,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+backend/firebase-service-account.json
 
 # Flutter / Dart (client, added in Phase 5)
 client/.dart_tool/

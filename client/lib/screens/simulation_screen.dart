@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../models/simulation.dart';
 import '../services/api_client.dart';
+import 'dart:convert';
+
+Widget _buildImage(String imageUrl) {
+  // gpt-image-2 only returns base64 data (data: URI), not a hosted URL —
+  // Image.network can't decode that, so route data: URIs through
+  // Image.memory instead.
+  if (imageUrl.startsWith('data:')) {
+    final base64Data = imageUrl.split(',').last;
+    return Image.memory(base64Decode(base64Data), fit: BoxFit.cover);
+  }
+  return Image.network(imageUrl);
+}
 
 class SimulationScreen extends StatefulWidget {
   final SimulationRequest request;
@@ -54,7 +66,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                 if (result.imageUrl != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(result.imageUrl!),
+                    child: _buildImage(result.imageUrl!),
                   )
                 else
                   _ImagePlaceholder(providerStatus: result.providerStatus),

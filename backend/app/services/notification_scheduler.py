@@ -9,7 +9,7 @@ from app.schemas.scoring import ScoringResult
 from app.services.astronomy import get_sun_events
 from app.services.notifications import (
     PushNotifier,
-    UnconfiguredPushNotifier,
+    _get_default_notifier,
     send_notification_safely,
 )
 from app.services.places import find_candidate_locations
@@ -32,7 +32,7 @@ def rescore_saved_profiles(
     profile's threshold. Returns a per-profile summary, useful for logging
     from the Celery task and for testing without needing a real notifier.
     """
-    notifier = notifier or UnconfiguredPushNotifier()
+    notifier = notifier or _get_default_notifier()
     target_date = on_date or (date.today() + timedelta(days=1))
 
     results = []
