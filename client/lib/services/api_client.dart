@@ -3,6 +3,7 @@ import '../models/trip_window.dart';
 
 import 'package:http/http.dart' as http;
 
+import '../models/feedback.dart';
 import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
@@ -88,5 +89,19 @@ class ApiClient {
     return (jsonDecode(response.body) as List)
         .map((item) => SavedProfileRecord.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<FeedbackRecord> createFeedback(FeedbackRequest request) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/feedback'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(request.toJson()),
+    );
+
+    if (response.statusCode != 201) {
+      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+    }
+
+    return FeedbackRecord.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 }

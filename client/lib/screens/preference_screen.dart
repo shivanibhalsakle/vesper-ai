@@ -92,7 +92,12 @@ class _PreferenceScreenState extends State<PreferenceScreen> {
         if (!mounted) return;
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ResultsScreen(response: response, event: widget.event),
+            builder: (_) => ResultsScreen(
+              response: response,
+              event: widget.event,
+              eventDate: widget.date,
+              preferences: preferences,
+            ),
           ),
         );
       }

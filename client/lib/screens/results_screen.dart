@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 
+import '../models/feedback.dart' as feedback_models;
+import '../models/preference_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
 import '../models/simulation.dart';
 import '../utils/format.dart';
+import 'feedback_screen.dart';
 import 'simulation_screen.dart';
 
 class ResultsScreen extends StatelessWidget {
   final SessionResponse response;
   final SunEvent event;
+  final DateTime eventDate;
+  final PreferenceProfile preferences;
 
-  const ResultsScreen({super.key, required this.response, required this.event});
+  const ResultsScreen({
+    super.key,
+    required this.response,
+    required this.event,
+    required this.eventDate,
+    required this.preferences,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +38,8 @@ class ResultsScreen extends StatelessWidget {
                 result: recommendations[index],
                 rank: index + 1,
                 event: event,
+                eventDate: eventDate,
+                preferences: preferences,
               ),
             ),
     );
@@ -37,8 +50,16 @@ class _LocationCard extends StatelessWidget {
   final LocationResult result;
   final int rank;
   final SunEvent event;
+  final DateTime eventDate;
+  final PreferenceProfile preferences;
 
-  const _LocationCard({required this.result, required this.rank, required this.event});
+  const _LocationCard({
+    required this.result,
+    required this.rank,
+    required this.event,
+    required this.eventDate,
+    required this.preferences,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -133,15 +154,46 @@ class _LocationCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text('Preview sky'),
-                onPressed: () => _openPreview(context),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.rate_review_outlined),
+                  label: const Text('Leave feedback'),
+                  onPressed: () => _openFeedback(context),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Preview sky'),
+                  onPressed: () => _openPreview(context),
+                ),
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openFeedback(BuildContext context) {
+    final forecastSnapshot = feedback_models.ForecastSnapshot(
+      cloudCoverSummary: result.cloudCoverSummary,
+      visibilityLikelihood: result.visibilityLikelihood,
+      colorProbabilities: result.colorProbabilities,
+      preferenceMatchScore: result.preferenceMatchScore,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FeedbackScreen(
+          locationId: result.locationId,
+          locationName: result.name,
+          locationType: result.type,
+          event: event,
+          eventDate: eventDate,
+          preferenceProfile: preferences,
+          forecastSnapshot: forecastSnapshot,
         ),
       ),
     );
