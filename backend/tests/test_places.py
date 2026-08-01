@@ -30,6 +30,13 @@ def _client_returning(payload: dict, call_counter: list[int] | None = None) -> h
     return httpx.Client(transport=httpx.MockTransport(handler))
 
 
+def _client_raising(status_code: int) -> httpx.Client:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status_code)
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
 def test_parses_osm_elements_filters_unnamed_and_unmatched():
     payload = {
         "elements": [
@@ -155,6 +162,41 @@ def test_curated_entry_is_deduped_when_osm_already_has_it():
 
     assert len(records) == 1
     assert records[0].source == LocationSource.OSM
+
+
+def test_overpass_failure_falls_back_to_curated_without_raising():
+    lat, lon = TOP_OF_THE_ROCK
+    client = _client_raising(504)
+
+    records = find_candidate_locations(
+        lat,
+        lon,
+        radius_km=1.0,
+        place_types=[LocationType.ELEVATED_VIEWPOINT],
+        client=client,
+        cache=FakeCache(),
+    )
+
+    assert len(records) == 1
+    assert records[0].name == "Top of the Rock"
+    assert records[0].source == LocationSource.CURATED
+
+
+def test_overpass_failure_is_not_cached():
+    lat, lon = TOP_OF_THE_ROCK
+    cache = FakeCache()
+
+    find_candidate_locations(
+        lat,
+        lon,
+        radius_km=1.0,
+        place_types=[LocationType.ELEVATED_VIEWPOINT],
+        client=_client_raising(504),
+        cache=cache,
+    )
+
+    cache_key = next(iter(cache._store), None)
+    assert cache_key is None
 
 
 def test_second_call_with_same_params_hits_cache_not_overpass():

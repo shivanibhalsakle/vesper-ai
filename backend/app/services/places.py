@@ -43,9 +43,16 @@ def find_candidate_locations(
     if cached is not None:
         raw_osm = json.loads(cached)
     else:
-        payload = _query_overpass(lat, lon, radius_km, place_types, client)
-        raw_osm = _parse_overpass_response(payload, place_types)
-        cache.set(cache_key, json.dumps(raw_osm), CACHE_TTL_SECONDS)
+        try:
+            payload = _query_overpass(lat, lon, radius_km, place_types, client)
+            raw_osm = _parse_overpass_response(payload, place_types)
+            cache.set(cache_key, json.dumps(raw_osm), CACHE_TTL_SECONDS)
+        except httpx.HTTPError:
+            # Overpass's public instance is flaky (timeouts/5xx under load).
+            # Don't cache the failure — fall through with no OSM results so
+            # the curated dataset below still has a chance to serve this
+            # request, and the next request retries Overpass fresh.
+            raw_osm = []
 
     osm_records = [
         LocationRecord(
