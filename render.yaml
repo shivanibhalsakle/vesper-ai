@@ -36,9 +36,7 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    dockerCommand: >-
-      sh -c "alembic upgrade head &&
-      uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    dockerCommand: sh start.sh
     plan: free
     envVars: &backendEnv
       - key: ENVIRONMENT
@@ -61,20 +59,26 @@ services:
       - key: ALLOWED_ORIGINS
         value: https://vesper-ai-37d6f.web.app,https://vesper-ai-37d6f.firebaseapp.com
 
-  - type: worker
-    name: vesper-celery-worker
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    dockerCommand: celery -A app.workers.celery_app worker --loglevel=info
-    plan: free
-    envVars: *backendEnv
-
-  - type: worker
-    name: vesper-celery-beat
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    dockerCommand: celery -A app.workers.celery_app beat --loglevel=info
-    plan: free
-    envVars: *backendEnv
+# Celery worker + beat (notification rescoring) are deliberately not deployed
+# yet — Render's free tier doesn't support the "Background Worker" service
+# type, only paid plans do. The app works fully without them (they only power
+# the daily saved-profile notification rescore). Add these back, on a paid
+# plan, when that feature is worth the extra cost:
+#
+#   - type: worker
+#     name: vesper-celery-worker
+#     runtime: docker
+#     dockerfilePath: ./backend/Dockerfile
+#     dockerContext: ./backend
+#     dockerCommand: celery -A app.workers.celery_app worker --loglevel=info
+#     plan: starter
+#     envVars: *backendEnv
+#
+#   - type: worker
+#     name: vesper-celery-beat
+#     runtime: docker
+#     dockerfilePath: ./backend/Dockerfile
+#     dockerContext: ./backend
+#     dockerCommand: celery -A app.workers.celery_app beat --loglevel=info
+#     plan: starter
+#     envVars: *backendEnv
