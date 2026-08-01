@@ -6,16 +6,32 @@ import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
+import '../services/location_service.dart';
 import '../services/push_notification_service.dart';
 
 class SavedProfileFormScreen extends StatefulWidget {
-  const SavedProfileFormScreen({super.key});
+  final ApiClient? apiClient;
+  final String Function()? getUserId;
+  final Future<String?> Function()? getFcmToken;
+
+  const SavedProfileFormScreen({
+    super.key,
+    this.apiClient,
+    this.getUserId,
+    this.getFcmToken,
+  });
 
   @override
   State<SavedProfileFormScreen> createState() => _SavedProfileFormScreenState();
 }
 
 class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
+  late final ApiClient _apiClient = widget.apiClient ?? ApiClient();
+  late final String Function() _getUserId =
+      widget.getUserId ?? (() => AuthService().currentUser!.uid);
+  late final Future<String?> Function() _getFcmToken =
+      widget.getFcmToken ?? (() => PushNotificationService().getToken());
+
   final _latController = TextEditingController(text: '40.7003');
   final _lonController = TextEditingController(text: '-73.9967');
 
@@ -24,6 +40,7 @@ class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
   final Set<LocationType> _placeTypes = {};
   double _matchThreshold = 0.75;
   bool _notificationEnabled = true;
+  bool _locating = false;
 
   double _clearSky = 0.0;
   double _dramaticClouds = 0.0;
@@ -44,6 +61,22 @@ class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
     super.dispose();
   }
 
+  Future<void> _useCurrentLocation() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService().getCurrentPosition();
+      _latController.text = position.latitude.toStringAsFixed(4);
+      _lonController.text = position.longitude.toStringAsFixed(4);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not get your location: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   Future<void> _submit() async {
     final lat = double.tryParse(_latController.text);
     final lon = double.tryParse(_lonController.text);
@@ -56,12 +89,12 @@ class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
 
     setState(() => _loading = true);
     try {
-      final user = AuthService().currentUser;
-      final fcmToken = await PushNotificationService().getToken();
+      final userId = _getUserId();
+      final fcmToken = await _getFcmToken();
       final types = _placeTypes.isEmpty ? LocationType.values.toList() : _placeTypes.toList();
 
       final request = SavedProfileRequest(
-        userId: user!.uid,
+        userId: userId,
         homeLat: lat,
         homeLon: lon,
         radiusKm: _radiusKm,
@@ -83,7 +116,7 @@ class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
         matchThreshold: _matchThreshold,
       );
 
-      await ApiClient().createSavedProfile(request);
+      await _apiClient.createSavedProfile(request);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -148,6 +181,20 @@ class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
                   ),
                 ),
               ],
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _locating ? null : _useCurrentLocation,
+                icon: _locating
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+                label: const Text('Use my current location'),
+              ),
             ),
             const SizedBox(height: 24),
             SegmentedButton<SunEvent>(

@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     firebase_credentials_path: str = ""
+    allowed_origins: str = (
+        "http://localhost:5050,"
+        "https://vesper-ai-37d6f.web.app,"
+        "https://vesper-ai-37d6f.firebaseapp.com"
+    )
 
 
 @lru_cache

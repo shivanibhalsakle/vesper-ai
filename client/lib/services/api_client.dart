@@ -18,10 +18,15 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  // Points at the local Docker Compose backend (see backend/README.md).
+  // Defaults to the local Docker Compose backend (see backend/README.md).
+  // Override at build time for deployed environments, e.g.:
+  //   flutter build web --dart-define=API_BASE_URL=https://vesper-backend.onrender.com
   // Android emulators must use 10.0.2.2 instead of localhost to reach the
   // host machine — revisit this when Android builds are wired up.
-  static const String baseUrl = 'http://localhost:8010';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:8010',
+  );
 
   Future<SessionResponse> fetchSession(SessionRequest request) async {
     final response = await http.post(

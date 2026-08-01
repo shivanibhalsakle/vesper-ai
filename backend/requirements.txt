@@ -14,3 +14,4 @@ python-dotenv==1.0.1
 anthropic==0.120.0
 openai
 firebase-admin
+pytest

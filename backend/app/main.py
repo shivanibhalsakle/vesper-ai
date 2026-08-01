@@ -7,14 +7,13 @@ from app.api.saved_profiles import router as saved_profiles_router
 from app.api.session import router as session_router
 from app.api.simulation import router as simulation_router
 from app.api.trip_window import router as trip_window_router
+from app.core.config import get_settings
 
 app = FastAPI(title="Vesper API")
 
-# Dev-only: the Flutter web client runs on a different origin/port than this
-# API. Tighten this to specific origins before any production deployment.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_settings().allowed_origins.split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )

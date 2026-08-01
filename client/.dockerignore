@@ -1,0 +1,15 @@
+.git
+.gitignore
+.metadata
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+*.lock
+pubspec.lock
+test/
+README.md
+analysis_options.yaml
+run_web.bat

@@ -1,3 +1,5 @@
+version: '3.9'
+
 services:
   db:
     image: postgis/postgis:16-3.4
@@ -31,14 +33,14 @@ services:
 
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: sunset_api
-    env_file: .env
+    env_file: ./backend/.env
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - .:/code
+      - ./backend:/code
     ports:
       - "8010:8000"
     depends_on:
@@ -56,14 +58,14 @@ services:
 
   worker:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: sunset_worker
-    env_file: .env
+    env_file: ./backend/.env
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - .:/code
+      - ./backend:/code
     command: celery -A app.workers.celery_app worker --loglevel=info
     depends_on:
       db:
@@ -74,20 +76,31 @@ services:
 
   beat:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: sunset_beat
-    env_file: .env
+    env_file: ./backend/.env
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - .:/code
+      - ./backend:/code
     command: celery -A app.workers.celery_app beat --loglevel=info
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: sunset_web
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:

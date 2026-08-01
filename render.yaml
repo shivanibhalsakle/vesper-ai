@@ -1,0 +1,80 @@
+# Render Blueprint for the Vesper backend (FastAPI + Celery worker + Celery
+# beat), backed by managed Postgres and Redis.
+#
+# One-time setup after this file is pushed to your repo's default branch:
+#   1. In the Render dashboard: New -> Blueprint -> select this repo.
+#      Render will read this file and propose the services below.
+#   2. Before applying, it will prompt for the `sync: false` env vars:
+#      ANTHROPIC_API_KEY and OPENAI_API_KEY (get these from your own
+#      Anthropic/OpenAI accounts — same values as in backend/.env locally).
+#   3. After the services are created, for BOTH vesper-backend and
+#      vesper-celery-worker (the beat process doesn't send notifications
+#      itself, so it doesn't need this): open the service -> Environment ->
+#      Secret Files -> add a file named exactly `firebase-service-account.json`
+#      with the contents of your Firebase service account key (the same file
+#      used locally at backend/firebase-service-account.json). Render mounts
+#      it at /etc/secrets/firebase-service-account.json, which is why
+#      FIREBASE_CREDENTIALS_PATH below points there.
+#   4. Plan names below are set to the free tier as a starting point — check
+#      Render's current pricing/plan names before deploying, since these can
+#      change.
+
+databases:
+  - name: vesper-db
+    plan: free
+    databaseName: vesper
+    user: vesper
+
+services:
+  - type: redis
+    name: vesper-redis
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: vesper-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: >-
+      sh -c "alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    plan: free
+    envVars: &backendEnv
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vesper-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: vesper-redis
+          type: redis
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: /etc/secrets/firebase-service-account.json
+      - key: ALLOWED_ORIGINS
+        value: https://vesper-ai-37d6f.web.app,https://vesper-ai-37d6f.firebaseapp.com
+
+  - type: worker
+    name: vesper-celery-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: celery -A app.workers.celery_app worker --loglevel=info
+    plan: free
+    envVars: *backendEnv
+
+  - type: worker
+    name: vesper-celery-beat
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: celery -A app.workers.celery_app beat --loglevel=info
+    plan: free
+    envVars: *backendEnv

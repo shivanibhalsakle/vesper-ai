@@ -13,7 +13,14 @@ def db_session():
     """
     connection = engine.connect()
     transaction = connection.begin()
-    testing_session_local = sessionmaker(bind=connection)
+    # create_saved_profile/create_feedback/etc. call session.commit() as part
+    # of normal application code. Without join_transaction_mode, that commit
+    # ends the outer transaction too, so the later transaction.rollback()
+    # becomes a no-op and rows leak into the real dev database. Binding to a
+    # savepoint means an app-level commit only releases the savepoint (a new
+    # one reopens automatically); the outer transaction — and everything in
+    # it — is still rolled back below.
+    testing_session_local = sessionmaker(bind=connection, join_transaction_mode="create_savepoint")
     session = testing_session_local()
 
     yield session

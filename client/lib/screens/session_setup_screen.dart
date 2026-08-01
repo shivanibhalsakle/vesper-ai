@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/location_type.dart';
 import '../models/session_request.dart';
+import '../services/location_service.dart';
 import 'preference_screen.dart';
 import 'saved_profiles_screen.dart';
 
@@ -16,8 +17,8 @@ class SessionSetupScreen extends StatefulWidget {
 class _SessionSetupScreenState extends State<SessionSetupScreen> {
 
   // Prefilled with Brooklyn Bridge Park (our test location throughout the
-  // backend build) since a proper location picker / geolocation is a
-  // follow-up, not part of this scaffold.
+  // backend build) as a fallback if geolocation isn't available/permitted —
+  // see _useCurrentLocation for the real location picker.
   final _latController = TextEditingController(text: '40.7003');
   final _lonController = TextEditingController(text: '-73.9967');
 
@@ -27,6 +28,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
   final Set<LocationType> _placeTypes = {};
     bool _isDateRange = false;
   DateTimeRange? _dateRange;
+  bool _locating = false;
 
   @override
   void dispose() {
@@ -62,6 +64,22 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
 
   String _formatDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService().getCurrentPosition();
+      _latController.text = position.latitude.toStringAsFixed(4);
+      _lonController.text = position.longitude.toStringAsFixed(4);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not get your location: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
 
   void _goToPreferences() {
     final lat = double.tryParse(_latController.text);
@@ -144,6 +162,20 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                   ),
                 ),
               ],
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _locating ? null : _useCurrentLocation,
+                icon: _locating
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+                label: const Text('Use my current location'),
+              ),
             ),
             const SizedBox(height: 24),
             SegmentedButton<SunEvent>(

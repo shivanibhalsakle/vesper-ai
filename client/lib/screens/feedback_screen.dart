@@ -19,6 +19,9 @@ class FeedbackScreen extends StatefulWidget {
   final DateTime eventDate;
   final PreferenceProfile preferenceProfile;
   final ForecastSnapshot forecastSnapshot;
+  final ApiClient? apiClient;
+  final String? Function()? getUserId;
+  final Future<String> Function(Uint8List bytes, String fileName)? uploadPhoto;
 
   const FeedbackScreen({
     super.key,
@@ -29,6 +32,9 @@ class FeedbackScreen extends StatefulWidget {
     required this.eventDate,
     required this.preferenceProfile,
     required this.forecastSnapshot,
+    this.apiClient,
+    this.getUserId,
+    this.uploadPhoto,
   });
 
   @override
@@ -36,6 +42,12 @@ class FeedbackScreen extends StatefulWidget {
 }
 
 class _FeedbackScreenState extends State<FeedbackScreen> {
+  late final ApiClient _apiClient = widget.apiClient ?? ApiClient();
+  late final String? Function() _getUserId =
+      widget.getUserId ?? (() => AuthService().currentUser?.uid);
+  late final Future<String> Function(Uint8List bytes, String fileName) _uploadPhoto =
+      widget.uploadPhoto ?? StorageService().uploadFeedbackPhoto;
+
   XFile? _photo;
   Uint8List? _photoBytes;
   bool _loading = false;
@@ -61,10 +73,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
     setState(() => _loading = true);
     try {
-      final user = AuthService().currentUser;
       final fileName = '${DateTime.now().millisecondsSinceEpoch}_${_photo!.name}';
-      final photoStoragePath =
-          await StorageService().uploadFeedbackPhoto(_photoBytes!, fileName);
+      final photoStoragePath = await _uploadPhoto(_photoBytes!, fileName);
 
       final request = FeedbackRequest(
         locationId: widget.locationId,
@@ -75,10 +85,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         photoStoragePath: photoStoragePath,
         preferenceProfile: widget.preferenceProfile,
         forecastSnapshot: widget.forecastSnapshot,
-        userId: user?.uid,
+        userId: _getUserId(),
       );
 
-      await ApiClient().createFeedback(request);
+      await _apiClient.createFeedback(request);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
