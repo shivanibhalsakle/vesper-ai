@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import httpx
 from fastapi.testclient import TestClient
 
 import app.api.session as session_module
@@ -194,3 +195,20 @@ def test_session_explanation_failure_does_not_break_the_request(monkeypatch):
 
     assert response.status_code == 200
     assert all(r["explanation"] is None for r in body["recommendations"])
+
+
+def test_session_returns_503_when_weather_provider_is_down(monkeypatch):
+    monkeypatch.setattr(session_module, "find_candidate_locations", fake_find_candidate_locations)
+    monkeypatch.setattr(session_module, "generate_explanation", fake_generate_explanation)
+
+    def failing_forecast(lat, lon, on_date, tz_name="UTC", client=None):
+        request = httpx.Request("GET", "https://api.open-meteo.com/v1/forecast")
+        response = httpx.Response(503, request=request)
+        raise httpx.HTTPStatusError("upstream down", request=request, response=response)
+
+    monkeypatch.setattr(session_module, "fetch_hourly_forecast", failing_forecast)
+
+    response = client.post("/session", json=_request_body())
+
+    assert response.status_code == 503
+    assert "temporarily unavailable" in response.json()["detail"]

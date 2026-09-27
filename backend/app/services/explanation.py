@@ -4,7 +4,10 @@ from app.schemas.location import LocationRecord
 from app.schemas.preferences import PreferenceProfile
 from app.schemas.scoring import ScoringResult
 
-MODEL = "claude-opus-4-8"
+# Haiku is plenty for a short, templated 2-3 sentence writeup from
+# structured data — no need for Opus/Sonnet-level reasoning here, and it's
+# both cheaper and faster per call.
+MODEL = "claude-haiku-4-5-20251001"
 MAX_TOKENS = 200
 
 _client: anthropic.Anthropic | None = None

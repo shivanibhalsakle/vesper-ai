@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+import httpx
+from fastapi import APIRouter, HTTPException
 
 from app.schemas.trip_window import TripWindowRequest, TripWindowResponse, TripWindowResult
 from app.services.explanation import generate_explanation
@@ -11,17 +12,23 @@ router = APIRouter(tags=["trip-window"])
 def create_trip_window(request: TripWindowRequest) -> TripWindowResponse:
     days_considered = (request.end_date - request.start_date).days + 1
 
-    search = find_best_day_and_location(
-        request.lat,
-        request.lon,
-        request.event,
-        request.start_date,
-        request.end_date,
-        request.radius_km,
-        request.place_types,
-        request.preferences,
-        request.tz_name,
-    )
+    try:
+        search = find_best_day_and_location(
+            request.lat,
+            request.lon,
+            request.event,
+            request.start_date,
+            request.end_date,
+            request.radius_km,
+            request.place_types,
+            request.preferences,
+            request.tz_name,
+        )
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=503,
+            detail="Weather data is temporarily unavailable. Please try again in a moment.",
+        )
 
     if search.best is None:
         return TripWindowResponse(

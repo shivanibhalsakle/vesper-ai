@@ -96,4 +96,4 @@ def test_uses_claude_opus_model():
 
     generate_explanation(LOCATION, SCORE, PREFERENCES, client=client)
 
-    assert client.messages.calls[0]["model"] == "claude-opus-4-8"
+    assert client.messages.calls[0]["model"] == "claude-haiku-4-5-20251001"

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import httpx
 from fastapi.testclient import TestClient
 
 import app.api.trip_window as tw_api_module
@@ -153,6 +154,24 @@ def test_end_date_before_start_date_is_rejected():
     )
 
     assert response.status_code == 422
+
+
+def test_trip_window_returns_503_when_weather_provider_is_down(monkeypatch):
+    monkeypatch.setattr(
+        tw_service_module, "find_candidate_locations", fake_find_candidate_locations
+    )
+
+    def failing_forecast(lat, lon, on_date, tz_name="UTC", end_date=None, client=None):
+        request = httpx.Request("GET", "https://api.open-meteo.com/v1/forecast")
+        response = httpx.Response(503, request=request)
+        raise httpx.HTTPStatusError("upstream down", request=request, response=response)
+
+    monkeypatch.setattr(tw_service_module, "fetch_hourly_forecast", failing_forecast)
+
+    response = client.post("/trip-window", json=_request_body())
+
+    assert response.status_code == 503
+    assert "temporarily unavailable" in response.json()["detail"]
 
 
 def test_trip_window_longer_than_max_is_rejected():
