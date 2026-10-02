@@ -1,9 +1,17 @@
-# Render Blueprint for the Vesper backend (FastAPI + Celery worker + Celery
-# beat). Postgres is intentionally NOT managed here — Render's free Postgres
-# is hard-deleted 30+14 days after creation regardless of usage (see
-# render.com/docs/free), which isn't viable for anything beyond a short
-# trial. The database lives on Neon (or Supabase) instead, a provider with
-# a genuinely non-expiring free tier, and is wired in as a plain env var.
+# Render Blueprint for the Vesper backend (FastAPI only — no Celery/worker
+# processes, see below). Postgres is intentionally NOT managed here —
+# Render's free Postgres is hard-deleted 30+14 days after creation
+# regardless of usage (see render.com/docs/free), which isn't viable for
+# anything beyond a short trial. The database lives on Neon (or Supabase)
+# instead, a provider with a genuinely non-expiring free tier, and is wired
+# in as a plain env var.
+#
+# The daily saved-profile notification rescore (previously a Celery beat
+# job) runs via POST /internal/rescore-notifications instead, since Render's
+# free tier doesn't support the "Background Worker" service type. A
+# scheduled GitHub Actions workflow (.github/workflows/rescore-notifications.yml)
+# calls that endpoint once a day with a shared secret in the
+# X-Internal-Secret header, matching INTERNAL_API_SECRET below.
 #
 # One-time setup after this file is pushed to your repo's default branch:
 #   1. In the Render dashboard: New -> Blueprint -> select this repo.
@@ -11,17 +19,19 @@
 #   2. Before applying, it will prompt for the `sync: false` env vars:
 #      DATABASE_URL (your Neon/Supabase connection string — include
 #      `?sslmode=require` if the provider doesn't already append it),
-#      ANTHROPIC_API_KEY, and OPENAI_API_KEY (the same values as in
-#      backend/.env locally).
-#   3. After the services are created, for BOTH vesper-backend and
-#      vesper-celery-worker (the beat process doesn't send notifications
-#      itself, so it doesn't need this): open the service -> Environment ->
+#      ANTHROPIC_API_KEY, OPENAI_API_KEY (the same values as in
+#      backend/.env locally), and INTERNAL_API_SECRET (any long random
+#      string — generate one yourself, e.g. `openssl rand -hex 32`).
+#   3. After the service is created, open vesper-backend -> Environment ->
 #      Secret Files -> add a file named exactly `firebase-service-account.json`
 #      with the contents of your Firebase service account key (the same file
 #      used locally at backend/firebase-service-account.json). Render mounts
 #      it at /etc/secrets/firebase-service-account.json, which is why
 #      FIREBASE_CREDENTIALS_PATH below points there.
-#   4. Plan names below are set to the free tier as a starting point — check
+#   4. In your GitHub repo settings -> Secrets and variables -> Actions, add
+#      a repository secret INTERNAL_API_SECRET with the exact same value you
+#      used above, so the scheduled workflow can authenticate.
+#   5. Plan names below are set to the free tier as a starting point — check
 #      Render's current pricing/plan names before deploying, since these can
 #      change.
 
@@ -38,9 +48,11 @@ services:
     dockerContext: ./backend
     dockerCommand: sh start.sh
     plan: free
-    envVars: &backendEnv
+    envVars:
       - key: ENVIRONMENT
         value: production
+      - key: INTERNAL_API_SECRET
+        sync: false
       # Set manually in the Render dashboard to your Neon connection string
       # (Neon has a genuinely non-expiring free tier, unlike Render's own
       # free Postgres which is hard-deleted 30+14 days after creation).
@@ -59,27 +71,3 @@ services:
         value: /etc/secrets/firebase-service-account.json
       - key: ALLOWED_ORIGINS
         value: https://vesper-ai-37d6f.web.app,https://vesper-ai-37d6f.firebaseapp.com
-
-# Celery worker + beat (notification rescoring) are deliberately not deployed
-# yet — Render's free tier doesn't support the "Background Worker" service
-# type, only paid plans do. The app works fully without them (they only power
-# the daily saved-profile notification rescore). Add these back, on a paid
-# plan, when that feature is worth the extra cost:
-#
-#   - type: worker
-#     name: vesper-celery-worker
-#     runtime: docker
-#     dockerfilePath: ./backend/Dockerfile
-#     dockerContext: ./backend
-#     dockerCommand: celery -A app.workers.celery_app worker --loglevel=info
-#     plan: starter
-#     envVars: *backendEnv
-#
-#   - type: worker
-#     name: vesper-celery-beat
-#     runtime: docker
-#     dockerfilePath: ./backend/Dockerfile
-#     dockerContext: ./backend
-#     dockerCommand: celery -A app.workers.celery_app beat --loglevel=info
-#     plan: starter
-#     envVars: *backendEnv

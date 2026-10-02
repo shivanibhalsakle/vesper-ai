@@ -30,7 +30,8 @@ def rescore_saved_profiles(
     """Re-scores each saved profile's area for the given date (default:
     tomorrow) and sends a push notification when the best match clears the
     profile's threshold. Returns a per-profile summary, useful for logging
-    from the Celery task and for testing without needing a real notifier.
+    from the /internal/rescore-notifications endpoint and for testing
+    without needing a real notifier.
     """
     notifier = notifier or _get_default_notifier()
     target_date = on_date or (date.today() + timedelta(days=1))
