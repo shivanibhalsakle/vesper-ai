@@ -34,12 +34,14 @@ class SimulationResponse {
   final String? imageUrl;
   final String disclaimer;
   final String providerStatus;
+  final int remainingToday;
 
   const SimulationResponse({
     required this.prompt,
     required this.imageUrl,
     required this.disclaimer,
     required this.providerStatus,
+    required this.remainingToday,
   });
 
   factory SimulationResponse.fromJson(Map<String, dynamic> json) => SimulationResponse(
@@ -47,5 +49,6 @@ class SimulationResponse {
         imageUrl: json['image_url'] as String?,
         disclaimer: json['disclaimer'] as String,
         providerStatus: json['provider_status'] as String,
+        remainingToday: json['remaining_today'] as int,
       );
 }

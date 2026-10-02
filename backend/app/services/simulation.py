@@ -1,11 +1,23 @@
+import hashlib
 from abc import ABC, abstractmethod
 
+import redis
+from openai import OpenAI
+from sqlalchemy.orm import Session
+
+from app.core.config import get_settings
 from app.schemas.location import LocationType
 from app.schemas.scoring import ColorProbabilities
 from app.schemas.session import SunEvent
 from app.schemas.simulation import SimulationRequest, SimulationResponse
-from openai import OpenAI
-from app.core.config import get_settings
+from app.services.cache import Cache, RedisCache
+from app.services.image_limits import ensure_within_daily_limit, record_usage, remaining_today
+
+# Identical prompts (same location, event, sky conditions) reuse the same
+# generated image for a day instead of paying for another OpenAI call —
+# this doesn't count against the user's daily limit, since it costs us
+# nothing (see generate_simulation).
+SIMULATION_CACHE_TTL_SECONDS = 60 * 60 * 24
 
 
 LOCATION_TYPE_FOREGROUND = {
@@ -108,14 +120,35 @@ def _sun_visibility_description(visibility_likelihood: float) -> str:
 
 
 def generate_simulation(
-    request: SimulationRequest, provider: ImageGenProvider | None = None
+    request: SimulationRequest,
+    user_id: str,
+    db: Session,
+    provider: ImageGenProvider | None = None,
+    cache: Cache | None = None,
 ) -> SimulationResponse:
     provider = provider or _get_default_provider()
+    cache = cache if cache is not None else RedisCache()
     prompt = build_simulation_prompt(request)
+    cache_key = f"simulation:{hashlib.sha256(prompt.encode()).hexdigest()}"
+
+    cached_image = _cache_get(cache, cache_key)
+    if cached_image is not None:
+        return SimulationResponse(
+            prompt=prompt,
+            image_url=cached_image,
+            provider_status="generated",
+            remaining_today=remaining_today(db, user_id),
+        )
+
+    # Raises ImageLimitExceeded if today's cap is already hit — checked here,
+    # before paying for a generation, not recorded until it actually succeeds.
+    ensure_within_daily_limit(db, user_id)
 
     try:
         image_url = provider.generate_image(prompt)
         status = "generated"
+        _cache_set(cache, cache_key, image_url)
+        record_usage(db, user_id)
     except NotImplementedError:
         image_url = None
         status = "not_configured"
@@ -123,4 +156,23 @@ def generate_simulation(
         image_url = None
         status = "error"
 
-    return SimulationResponse(prompt=prompt, image_url=image_url, provider_status=status)
+    return SimulationResponse(
+        prompt=prompt,
+        image_url=image_url,
+        provider_status=status,
+        remaining_today=remaining_today(db, user_id),
+    )
+
+
+def _cache_get(cache: Cache, key: str) -> str | None:
+    try:
+        return cache.get(key)
+    except redis.RedisError:
+        return None
+
+
+def _cache_set(cache: Cache, key: str, value: str) -> None:
+    try:
+        cache.set(key, value, SIMULATION_CACHE_TTL_SECONDS)
+    except redis.RedisError:
+        pass

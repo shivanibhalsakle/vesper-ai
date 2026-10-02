@@ -28,3 +28,4 @@ class SimulationResponse(BaseModel):
     image_url: str | None
     disclaimer: str = DISCLAIMER
     provider_status: str  # "generated" | "not_configured" | "error"
+    remaining_today: int  # previews left today under the per-user daily cap

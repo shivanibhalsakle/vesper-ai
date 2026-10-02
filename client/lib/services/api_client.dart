@@ -56,18 +56,35 @@ class ApiClient {
   return TripWindowResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
 }
 
-  Future<SimulationResponse> fetchSimulation(SimulationRequest request) async {
+  Future<SimulationResponse> fetchSimulation(SimulationRequest request, String idToken) async {
     final response = await http.post(
       Uri.parse('$baseUrl/simulate'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $idToken',
+      },
       body: jsonEncode(request.toJson()),
     );
 
     if (response.statusCode != 200) {
-      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+      throw ApiException(_errorMessage(response));
     }
 
     return SimulationResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  // The backend returns {"detail": "..."} for auth/rate-limit errors — show
+  // that human-readable message instead of the raw response body.
+  String _errorMessage(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map && body['detail'] is String) {
+        return body['detail'] as String;
+      }
+    } catch (_) {
+      // Fall through to the generic message below.
+    }
+    return 'Request failed (${response.statusCode}): ${response.body}';
   }
 
   Future<SavedProfileRecord> createSavedProfile(SavedProfileRequest request) async {

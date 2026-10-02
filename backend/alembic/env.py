@@ -8,6 +8,7 @@ from alembic import context
 from app.core.config import get_settings
 from app.db.base import Base
 from app.models.feedback import FeedbackEntry  # noqa: F401 — registers the table on Base
+from app.models.image_usage import ImageGenerationUsage  # noqa: F401 — registers the table
 from app.models.saved_profile import SavedProfile  # noqa: F401 — registers the table on Base
 
 # this is the Alembic Config object, which provides
