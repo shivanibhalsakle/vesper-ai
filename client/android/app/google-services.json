@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "862600156615",
+    "project_id": "vesper-ai-37d6f",
+    "storage_bucket": "vesper-ai-37d6f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:862600156615:android:6d4391b311e0ac1475b5e2",
+        "android_client_info": {
+          "package_name": "com.shivanibhalsakle.vesper"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "862600156615-brqokb1n2o6vtbend2m5ekc40hvcrvlq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-rD5P-nnFfOKgF95DV4e_DRVa6GruUOc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "862600156615-brqokb1n2o6vtbend2m5ekc40hvcrvlq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
