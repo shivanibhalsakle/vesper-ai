@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'push_notification_service.dart';
 
@@ -9,7 +10,10 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<User?> signInWithGoogle() async {
-    final credential = await _auth.signInWithPopup(GoogleAuthProvider());
+    final provider = GoogleAuthProvider();
+    final credential = kIsWeb
+        ? await _auth.signInWithPopup(provider)
+        : await _auth.signInWithProvider(provider);
     await PushNotificationService().requestPermissionAndGetToken();
     return credential.user;
   }
