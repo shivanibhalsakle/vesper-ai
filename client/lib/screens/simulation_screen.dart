@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/simulation.dart';
 import '../services/api_client.dart';
-import '../services/auth_service.dart';
 import 'dart:convert';
 
 Widget _buildImage(String imageUrl) {
@@ -36,15 +35,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
   @override
   void initState() {
     super.initState();
-    _future = _loadSimulation();
-  }
-
-  Future<SimulationResponse> _loadSimulation() async {
-    final idToken = await AuthService().getIdToken();
-    if (idToken == null) {
-      throw Exception('You need to be signed in to preview the sky.');
-    }
-    return ApiClient().fetchSimulation(widget.request, idToken);
+    _future = ApiClient().fetchSimulation(widget.request);
   }
 
   @override

@@ -8,7 +8,6 @@ import '../models/location_type.dart';
 import '../models/preference_profile.dart';
 import '../models/session_request.dart';
 import '../services/api_client.dart';
-import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 
 class FeedbackScreen extends StatefulWidget {
@@ -20,7 +19,6 @@ class FeedbackScreen extends StatefulWidget {
   final PreferenceProfile preferenceProfile;
   final ForecastSnapshot forecastSnapshot;
   final ApiClient? apiClient;
-  final String? Function()? getUserId;
   final Future<String> Function(Uint8List bytes, String fileName)? uploadPhoto;
 
   const FeedbackScreen({
@@ -33,7 +31,6 @@ class FeedbackScreen extends StatefulWidget {
     required this.preferenceProfile,
     required this.forecastSnapshot,
     this.apiClient,
-    this.getUserId,
     this.uploadPhoto,
   });
 
@@ -43,8 +40,6 @@ class FeedbackScreen extends StatefulWidget {
 
 class _FeedbackScreenState extends State<FeedbackScreen> {
   late final ApiClient _apiClient = widget.apiClient ?? ApiClient();
-  late final String? Function() _getUserId =
-      widget.getUserId ?? (() => AuthService().currentUser?.uid);
   late final Future<String> Function(Uint8List bytes, String fileName) _uploadPhoto =
       widget.uploadPhoto ?? StorageService().uploadFeedbackPhoto;
 
@@ -85,7 +80,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         photoStoragePath: photoStoragePath,
         preferenceProfile: widget.preferenceProfile,
         forecastSnapshot: widget.forecastSnapshot,
-        userId: _getUserId(),
       );
 
       await _apiClient.createFeedback(request);

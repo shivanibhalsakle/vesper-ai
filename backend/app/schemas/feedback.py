@@ -29,7 +29,7 @@ class FeedbackCreate(BaseModel):
     photo_storage_path: str
     preference_profile: PreferenceProfile
     forecast_snapshot: ForecastSnapshot
-    user_id: str | None = None
+    # No user_id: the author always comes from the verified Firebase token.
 
 
 class FeedbackRecord(BaseModel):
@@ -40,7 +40,8 @@ class FeedbackRecord(BaseModel):
     event: SunEvent
     event_date: date_type
     photo_storage_path: str
-    user_id: str | None
+    # user_id is deliberately not exposed — these records are readable by
+    # other signed-in users, who shouldn't see each other's account IDs.
     preference_profile: PreferenceProfile
     forecast_snapshot: ForecastSnapshot
     created_at: datetime

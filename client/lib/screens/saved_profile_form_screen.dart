@@ -5,19 +5,16 @@ import '../models/preference_profile.dart';
 import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../services/api_client.dart';
-import '../services/auth_service.dart';
 import '../services/location_service.dart';
 import '../services/push_notification_service.dart';
 
 class SavedProfileFormScreen extends StatefulWidget {
   final ApiClient? apiClient;
-  final String Function()? getUserId;
   final Future<String?> Function()? getFcmToken;
 
   const SavedProfileFormScreen({
     super.key,
     this.apiClient,
-    this.getUserId,
     this.getFcmToken,
   });
 
@@ -27,8 +24,6 @@ class SavedProfileFormScreen extends StatefulWidget {
 
 class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
   late final ApiClient _apiClient = widget.apiClient ?? ApiClient();
-  late final String Function() _getUserId =
-      widget.getUserId ?? (() => AuthService().currentUser!.uid);
   late final Future<String?> Function() _getFcmToken =
       widget.getFcmToken ?? (() => PushNotificationService().getToken());
 
@@ -89,12 +84,10 @@ class _SavedProfileFormScreenState extends State<SavedProfileFormScreen> {
 
     setState(() => _loading = true);
     try {
-      final userId = _getUserId();
       final fcmToken = await _getFcmToken();
       final types = _placeTypes.isEmpty ? LocationType.values.toList() : _placeTypes.toList();
 
       final request = SavedProfileRequest(
-        userId: userId,
         homeLat: lat,
         homeLon: lon,
         radiusKm: _radiusKm,

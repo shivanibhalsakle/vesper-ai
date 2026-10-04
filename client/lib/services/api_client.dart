@@ -8,6 +8,7 @@ import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
 import '../models/simulation.dart';
+import 'auth_service.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -56,13 +57,10 @@ class ApiClient {
   return TripWindowResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
 }
 
-  Future<SimulationResponse> fetchSimulation(SimulationRequest request, String idToken) async {
+  Future<SimulationResponse> fetchSimulation(SimulationRequest request) async {
     final response = await http.post(
       Uri.parse('$baseUrl/simulate'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
+      headers: await _authHeaders(),
       body: jsonEncode(request.toJson()),
     );
 
@@ -71,6 +69,19 @@ class ApiClient {
     }
 
     return SimulationResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  // The backend identifies the user from this Firebase ID token — the app
+  // never sends a user id itself. getIdToken() refreshes expired tokens.
+  Future<Map<String, String>> _authHeaders() async {
+    final idToken = await AuthService().getIdToken();
+    if (idToken == null) {
+      throw ApiException('You need to be signed in to do that.');
+    }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $idToken',
+    };
   }
 
   // The backend returns {"detail": "..."} for auth/rate-limit errors — show
@@ -90,22 +101,25 @@ class ApiClient {
   Future<SavedProfileRecord> createSavedProfile(SavedProfileRequest request) async {
     final response = await http.post(
       Uri.parse('$baseUrl/profiles'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
       body: jsonEncode(request.toJson()),
     );
 
     if (response.statusCode != 201) {
-      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+      throw ApiException(_errorMessage(response));
     }
 
     return SavedProfileRecord.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<List<SavedProfileRecord>> fetchSavedProfiles(String userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/profiles?user_id=$userId'));
+  Future<List<SavedProfileRecord>> fetchSavedProfiles() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/profiles'),
+      headers: await _authHeaders(),
+    );
 
     if (response.statusCode != 200) {
-      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+      throw ApiException(_errorMessage(response));
     }
 
     return (jsonDecode(response.body) as List)
@@ -116,12 +130,12 @@ class ApiClient {
   Future<FeedbackRecord> createFeedback(FeedbackRequest request) async {
     final response = await http.post(
       Uri.parse('$baseUrl/feedback'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
       body: jsonEncode(request.toJson()),
     );
 
     if (response.statusCode != 201) {
-      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+      throw ApiException(_errorMessage(response));
     }
 
     return FeedbackRecord.fromJson(jsonDecode(response.body) as Map<String, dynamic>);

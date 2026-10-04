@@ -4,9 +4,9 @@ from app.models.saved_profile import SavedProfile
 from app.schemas.saved_profile import SavedProfileCreate
 
 
-def create_saved_profile(db: Session, data: SavedProfileCreate) -> SavedProfile:
+def create_saved_profile(db: Session, data: SavedProfileCreate, user_id: str) -> SavedProfile:
     profile = SavedProfile(
-        user_id=data.user_id,
+        user_id=user_id,
         home_lat=data.home_lat,
         home_lon=data.home_lon,
         radius_km=data.radius_km,

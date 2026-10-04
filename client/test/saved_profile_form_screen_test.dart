@@ -29,7 +29,6 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: SavedProfileFormScreen(
         apiClient: _FakeApiClient(),
-        getUserId: () => 'test-user',
         getFcmToken: () async => null,
       ),
     ));
@@ -52,7 +51,6 @@ void main() {
               MaterialPageRoute(
                 builder: (_) => SavedProfileFormScreen(
                   apiClient: fakeClient,
-                  getUserId: () => 'test-user',
                   getFcmToken: () async => 'fake-token',
                 ),
               ),
@@ -72,7 +70,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fakeClient.lastRequest, isNotNull);
-    expect(fakeClient.lastRequest!.userId, 'test-user');
     expect(fakeClient.lastRequest!.fcmToken, 'fake-token');
     expect(poppedValue, true);
   });

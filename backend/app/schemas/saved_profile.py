@@ -8,7 +8,8 @@ from app.schemas.session import SunEvent
 
 
 class SavedProfileCreate(BaseModel):
-    user_id: str
+    # No user_id here on purpose: the owner always comes from the verified
+    # Firebase token, never from the request body.
     home_lat: float
     home_lon: float
     radius_km: float = Field(10.0, gt=0, le=100)

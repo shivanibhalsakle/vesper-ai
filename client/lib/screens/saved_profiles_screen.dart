@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../models/saved_profile.dart';
 import '../services/api_client.dart';
-import '../services/auth_service.dart';
 import 'saved_profile_form_screen.dart';
 
 class SavedProfilesScreen extends StatefulWidget {
   final ApiClient? apiClient;
-  final String Function()? getUserId;
 
-  const SavedProfilesScreen({super.key, this.apiClient, this.getUserId});
+  const SavedProfilesScreen({super.key, this.apiClient});
 
   @override
   State<SavedProfilesScreen> createState() => _SavedProfilesScreenState();
@@ -17,8 +15,6 @@ class SavedProfilesScreen extends StatefulWidget {
 
 class _SavedProfilesScreenState extends State<SavedProfilesScreen> {
   late final ApiClient _apiClient = widget.apiClient ?? ApiClient();
-  late final String Function() _getUserId =
-      widget.getUserId ?? (() => AuthService().currentUser!.uid);
 
   late Future<List<SavedProfileRecord>> _future;
 
@@ -29,7 +25,7 @@ class _SavedProfilesScreenState extends State<SavedProfilesScreen> {
   }
 
   Future<List<SavedProfileRecord>> _load() {
-    return _apiClient.fetchSavedProfiles(_getUserId());
+    return _apiClient.fetchSavedProfiles();
   }
 
   Future<void> _addProfile() async {

@@ -37,7 +37,6 @@ Widget _buildScreen({ApiClient? apiClient}) {
         preferenceMatchScore: 0.85,
       ),
       apiClient: apiClient,
-      getUserId: () => 'test-user',
     ),
   );
 }

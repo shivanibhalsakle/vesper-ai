@@ -33,7 +33,6 @@ class FeedbackRequest {
   final String photoStoragePath;
   final PreferenceProfile preferenceProfile;
   final ForecastSnapshot forecastSnapshot;
-  final String? userId;
 
   const FeedbackRequest({
     required this.locationId,
@@ -44,7 +43,6 @@ class FeedbackRequest {
     required this.photoStoragePath,
     required this.preferenceProfile,
     required this.forecastSnapshot,
-    this.userId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -56,7 +54,6 @@ class FeedbackRequest {
         'photo_storage_path': photoStoragePath,
         'preference_profile': preferenceProfile.toJson(),
         'forecast_snapshot': forecastSnapshot.toJson(),
-        'user_id': userId,
       };
 
   static String _formatDate(DateTime date) {

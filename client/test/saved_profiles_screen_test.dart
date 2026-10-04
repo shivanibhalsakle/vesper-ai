@@ -12,7 +12,7 @@ class _FakeApiClient extends ApiClient {
   _FakeApiClient(this.profiles);
 
   @override
-  Future<List<SavedProfileRecord>> fetchSavedProfiles(String userId) async => profiles;
+  Future<List<SavedProfileRecord>> fetchSavedProfiles() async => profiles;
 }
 
 void main() {
@@ -20,7 +20,6 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: SavedProfilesScreen(
         apiClient: _FakeApiClient([]),
-        getUserId: () => 'test-user',
       ),
     ));
     await tester.pumpAndSettle();
@@ -43,7 +42,6 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: SavedProfilesScreen(
         apiClient: _FakeApiClient([profile]),
-        getUserId: () => 'test-user',
       ),
     ));
     await tester.pumpAndSettle();
@@ -56,7 +54,6 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: SavedProfilesScreen(
         apiClient: _FakeApiClient([]),
-        getUserId: () => 'test-user',
       ),
     ));
     await tester.pumpAndSettle();

@@ -3,7 +3,6 @@ import 'preference_profile.dart';
 import 'session_request.dart';
 
 class SavedProfileRequest {
-  final String userId;
   final double homeLat;
   final double homeLon;
   final double radiusKm;
@@ -16,7 +15,6 @@ class SavedProfileRequest {
   final String tzName;
 
   const SavedProfileRequest({
-    required this.userId,
     required this.homeLat,
     required this.homeLon,
     required this.radiusKm,
@@ -30,7 +28,6 @@ class SavedProfileRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'user_id': userId,
         'home_lat': homeLat,
         'home_lon': homeLon,
         'radius_km': radiusKm,

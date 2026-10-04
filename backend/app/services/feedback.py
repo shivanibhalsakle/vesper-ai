@@ -4,7 +4,7 @@ from app.models.feedback import FeedbackEntry
 from app.schemas.feedback import FeedbackCreate
 
 
-def create_feedback(db: Session, data: FeedbackCreate) -> FeedbackEntry:
+def create_feedback(db: Session, data: FeedbackCreate, user_id: str) -> FeedbackEntry:
     entry = FeedbackEntry(
         location_id=data.location_id,
         location_name=data.location_name,
@@ -12,7 +12,7 @@ def create_feedback(db: Session, data: FeedbackCreate) -> FeedbackEntry:
         event=data.event.value,
         event_date=data.event_date,
         photo_storage_path=data.photo_storage_path,
-        user_id=data.user_id,
+        user_id=user_id,
         preference_profile=data.preference_profile.model_dump(),
         forecast_snapshot=data.forecast_snapshot.model_dump(),
     )
