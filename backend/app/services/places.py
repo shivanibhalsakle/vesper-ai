@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.data.curated_locations import CURATED_LOCATIONS
 from app.schemas.location import LocationRecord, LocationSource, LocationType
 from app.services.cache import Cache, RedisCache
+from app.services.place_index import PlaceIndex, PostgresPlaceIndex
 from app.services.place_store import PlaceStore, PostgresPlaceStore
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,17 @@ def find_candidate_locations(
     client: httpx.Client | None = None,
     cache: Cache | None = None,
     store: PlaceStore | None = None,
+    index: PlaceIndex | None = None,
 ) -> list[LocationRecord]:
+    # Our own loaded OSM data comes first: it's fast and doesn't depend on a
+    # public service being up. Overpass below only covers areas we haven't loaded.
+    index = index if index is not None else PostgresPlaceIndex()
+    indexed = _osm_records(
+        index.search(lat, lon, radius_km, place_types), lat, lon, radius_km, place_types
+    )
+    if indexed:
+        return _with_curated(indexed, lat, lon, radius_km, place_types)
+
     cache = cache if cache is not None else RedisCache()
     store = store if store is not None else PostgresPlaceStore()
 
@@ -78,6 +89,16 @@ def find_candidate_locations(
         return curated
 
     osm_records = _osm_records(raw_osm, lat, lon, radius_km, place_types)
+    return _with_curated(osm_records, lat, lon, radius_km, place_types)
+
+
+def _with_curated(
+    osm_records: list[LocationRecord],
+    lat: float,
+    lon: float,
+    radius_km: float,
+    place_types: list[LocationType],
+) -> list[LocationRecord]:
     curated_records = _curated_candidates(lat, lon, radius_km, place_types)
     merged = _merge_and_dedupe(osm_records, curated_records)
     merged.sort(key=lambda r: r.distance_km)

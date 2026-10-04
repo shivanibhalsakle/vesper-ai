@@ -16,8 +16,10 @@ FROM python:3.12-slim
 WORKDIR /code
 
 # Install only runtime dependencies
+# (libexpat1 is needed by pyosmium, which the one-off OSM loader script uses)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

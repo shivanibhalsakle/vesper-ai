@@ -77,7 +77,19 @@ def _client_raising(status_code: int) -> httpx.Client:
     return httpx.Client(transport=httpx.MockTransport(handler))
 
 
-def _find(lat, lon, radius_km, place_types, client, cache=None, store=None):
+class FakeIndex:
+    """Stands in for our loaded osm_places table; empty unless given results."""
+
+    def __init__(self, results: list[dict] | None = None):
+        self.results = results or []
+        self.searches = 0
+
+    def search(self, lat, lon, radius_km, place_types):
+        self.searches += 1
+        return self.results
+
+
+def _find(lat, lon, radius_km, place_types, client, cache=None, store=None, index=None):
     return find_candidate_locations(
         lat,
         lon,
@@ -86,6 +98,7 @@ def _find(lat, lon, radius_km, place_types, client, cache=None, store=None):
         client=client,
         cache=cache if cache is not None else FakeCache(),
         store=store if store is not None else FakeStore(),
+        index=index if index is not None else FakeIndex(),
     )
 
 
@@ -410,3 +423,87 @@ def test_postgres_store_round_trip_and_upsert(db_session):
 
     store.set("places:v2:test", [{"id": "y"}])
     assert store.get("places:v2:test").payload == [{"id": "y"}]
+
+
+def _indexed(place_id: str, name: str, types: list[str], dlat: float = 0.0) -> dict:
+    return {
+        "id": place_id,
+        "name": name,
+        "types": types,
+        "lat": RURAL_LAT + dlat,
+        "lon": RURAL_LON,
+    }
+
+
+def test_loaded_places_are_served_without_touching_overpass():
+    index = FakeIndex([_indexed("osm:node/1", "Loaded Park", ["park"])])
+    calls: list[int] = []
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK],
+        _client_returning({"elements": []}, calls), index=index,
+    )
+
+    assert [r.name for r in records] == ["Loaded Park"]
+    assert records[0].source == LocationSource.OSM
+    assert calls == []
+
+
+def test_loaded_places_work_even_when_overpass_is_down():
+    index = FakeIndex([_indexed("osm:node/1", "Loaded Park", ["park"])])
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK], _client_raising(504), index=index
+    )
+
+    assert [r.name for r in records] == ["Loaded Park"]
+
+
+def test_loaded_places_are_filtered_by_type_and_radius():
+    index = FakeIndex(
+        [
+            _indexed("osm:node/1", "Park And Beach", ["park", "beach"], dlat=0.01),
+            _indexed("osm:node/2", "Only A Park", ["park"], dlat=0.01),
+            _indexed("osm:node/3", "Too Far Beach", ["beach"], dlat=0.5),
+        ]
+    )
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.BEACH], _client_raising(504), index=index
+    )
+
+    assert [r.name for r in records] == ["Park And Beach"]
+    assert records[0].type == LocationType.BEACH
+
+
+def test_loaded_places_are_merged_with_curated_ones():
+    lat, lon = TOP_OF_THE_ROCK
+    index = FakeIndex(
+        [
+            {
+                "id": "osm:node/9",
+                "name": "Some Rooftop",
+                "types": ["elevated_viewpoint"],
+                "lat": lat + 0.001,
+                "lon": lon,
+            }
+        ]
+    )
+
+    records = _find(
+        lat, lon, 1.0, [LocationType.ELEVATED_VIEWPOINT], _client_raising(504), index=index
+    )
+
+    assert {r.name for r in records} == {"Some Rooftop", "Top of the Rock"}
+
+
+def test_empty_index_falls_through_to_the_overpass_path():
+    index = FakeIndex()
+    payload = {"elements": [_park_element(1, "Overpass Park")]}
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK], _client_returning(payload), index=index
+    )
+
+    assert index.searches == 1
+    assert [r.name for r in records] == ["Overpass Park"]
