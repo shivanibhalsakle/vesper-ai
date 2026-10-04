@@ -7,6 +7,10 @@ class PushNotificationService {
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
+  // The VAPID key only exists for web push; native Android/iOS identify the
+  // app through google-services.json instead.
+  String? get _webVapidKey => kIsWeb ? _vapidKey : null;
+
   Future<String?> requestPermissionAndGetToken() async {
     final settings = await _messaging.requestPermission();
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
@@ -14,10 +18,10 @@ class PushNotificationService {
       return null;
     }
 
-    final token = await _messaging.getToken(vapidKey: _vapidKey);
+    final token = await _messaging.getToken(vapidKey: _webVapidKey);
     debugPrint('FCM token: $token');
     return token;
   }
 
-  Future<String?> getToken() => _messaging.getToken(vapidKey: _vapidKey);
+  Future<String?> getToken() => _messaging.getToken(vapidKey: _webVapidKey);
 }

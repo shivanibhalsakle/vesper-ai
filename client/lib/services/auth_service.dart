@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'push_notification_service.dart';
 
@@ -14,7 +14,13 @@ class AuthService {
     final credential = kIsWeb
         ? await _auth.signInWithPopup(provider)
         : await _auth.signInWithProvider(provider);
-    await PushNotificationService().requestPermissionAndGetToken();
+    // Notification setup is a nice-to-have — a failure here must never make a
+    // successful sign-in look like a failed one.
+    try {
+      await PushNotificationService().requestPermissionAndGetToken();
+    } catch (e) {
+      debugPrint('Push notification setup failed: $e');
+    }
     return credential.user;
   }
 
