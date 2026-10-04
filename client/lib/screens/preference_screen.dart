@@ -104,7 +104,10 @@ class _PreferenceScreenState extends State<PreferenceScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not fetch recommendations: $e')),
+        SnackBar(
+          content: Text('Could not fetch recommendations: $e'),
+          action: SnackBarAction(label: 'Retry', onPressed: _submit),
+        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);

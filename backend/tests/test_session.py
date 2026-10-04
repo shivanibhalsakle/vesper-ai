@@ -7,6 +7,7 @@ import app.api.session as session_module
 from app.main import app
 from app.schemas.location import LocationRecord, LocationSource, LocationType
 from app.schemas.weather import HourlyForecast, WeatherForecast
+from app.services.places import PlaceDataUnavailable
 
 client = TestClient(app)
 
@@ -212,3 +213,15 @@ def test_session_returns_503_when_weather_provider_is_down(monkeypatch):
 
     assert response.status_code == 503
     assert "temporarily unavailable" in response.json()["detail"]
+
+
+def test_session_returns_503_when_place_data_is_unavailable(monkeypatch):
+    def failing_find(lat, lon, radius_km, place_types, client=None, cache=None, store=None):
+        raise PlaceDataUnavailable("overpass down")
+
+    monkeypatch.setattr(session_module, "find_candidate_locations", failing_find)
+
+    response = client.post("/session", json=_request_body())
+
+    assert response.status_code == 503
+    assert "Place data" in response.json()["detail"]

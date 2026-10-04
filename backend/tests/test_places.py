@@ -1,13 +1,28 @@
+from datetime import datetime, timedelta, timezone
+
 import httpx
+import pytest
+import redis
 
 from app.schemas.location import LocationSource, LocationType
-from app.services.places import find_candidate_locations
+from app.services.place_store import PostgresPlaceStore, StoredPlaces
+from app.services.places import (
+    CACHE_TTL_SECONDS,
+    PlaceDataUnavailable,
+    _cache_key,
+    find_candidate_locations,
+)
 
 # Far from every curated fallback entry (all in NYC), so generic OSM-parsing
 # tests aren't accidentally affected by curated data.
 RURAL_LAT, RURAL_LON = 41.5, -75.5
 
 TOP_OF_THE_ROCK = (40.7590, -73.9787)
+
+
+@pytest.fixture(autouse=True)
+def no_retry_sleep(monkeypatch):
+    monkeypatch.setattr("app.services.places.time.sleep", lambda seconds: None)
 
 
 class FakeCache:
@@ -19,6 +34,31 @@ class FakeCache:
 
     def set(self, key: str, value: str, ttl_seconds: int) -> None:
         self._store[key] = value
+
+
+class BrokenCache:
+    def get(self, key: str) -> str | None:
+        raise redis.ConnectionError("redis down")
+
+    def set(self, key: str, value: str, ttl_seconds: int) -> None:
+        raise redis.ConnectionError("redis down")
+
+
+class FakeStore:
+    def __init__(self):
+        self.entries: dict[str, StoredPlaces] = {}
+        self.writes = 0
+
+    def get(self, key: str) -> StoredPlaces | None:
+        return self.entries.get(key)
+
+    def set(self, key: str, payload: list[dict]) -> None:
+        self.writes += 1
+        self.entries[key] = StoredPlaces(payload=payload, fetched_at=_now())
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def _client_returning(payload: dict, call_counter: list[int] | None = None) -> httpx.Client:
@@ -35,6 +75,28 @@ def _client_raising(status_code: int) -> httpx.Client:
         return httpx.Response(status_code)
 
     return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def _find(lat, lon, radius_km, place_types, client, cache=None, store=None):
+    return find_candidate_locations(
+        lat,
+        lon,
+        radius_km=radius_km,
+        place_types=place_types,
+        client=client,
+        cache=cache if cache is not None else FakeCache(),
+        store=store if store is not None else FakeStore(),
+    )
+
+
+def _park_element(element_id: int, name: str, dlat: float = 0.0) -> dict:
+    return {
+        "type": "node",
+        "id": element_id,
+        "lat": RURAL_LAT + dlat,
+        "lon": RURAL_LON,
+        "tags": {"name": name, "leisure": "park"},
+    }
 
 
 def test_parses_osm_elements_filters_unnamed_and_unmatched():
@@ -69,15 +131,13 @@ def test_parses_osm_elements_filters_unnamed_and_unmatched():
             },
         ]
     }
-    client = _client_returning(payload)
 
-    records = find_candidate_locations(
+    records = _find(
         RURAL_LAT,
         RURAL_LON,
-        radius_km=5.0,
-        place_types=[LocationType.PARK, LocationType.BEACH],
-        client=client,
-        cache=FakeCache(),
+        5.0,
+        [LocationType.PARK, LocationType.BEACH],
+        _client_returning(payload),
     )
 
     names = {r.name for r in records}
@@ -88,47 +148,21 @@ def test_parses_osm_elements_filters_unnamed_and_unmatched():
 def test_results_are_sorted_by_distance():
     payload = {
         "elements": [
-            {
-                "type": "node",
-                "id": 1,
-                "lat": RURAL_LAT + 0.05,
-                "lon": RURAL_LON,
-                "tags": {"name": "Farther Park", "leisure": "park"},
-            },
-            {
-                "type": "node",
-                "id": 2,
-                "lat": RURAL_LAT + 0.01,
-                "lon": RURAL_LON,
-                "tags": {"name": "Closer Park", "leisure": "park"},
-            },
+            _park_element(1, "Farther Park", dlat=0.05),
+            _park_element(2, "Closer Park", dlat=0.01),
         ]
     }
-    client = _client_returning(payload)
 
-    records = find_candidate_locations(
-        RURAL_LAT,
-        RURAL_LON,
-        radius_km=10.0,
-        place_types=[LocationType.PARK],
-        client=client,
-        cache=FakeCache(),
-    )
+    records = _find(RURAL_LAT, RURAL_LON, 10.0, [LocationType.PARK], _client_returning(payload))
 
     assert [r.name for r in records] == ["Closer Park", "Farther Park"]
 
 
 def test_curated_fallback_fills_in_when_osm_has_no_results():
-    client = _client_returning({"elements": []})
     lat, lon = TOP_OF_THE_ROCK
 
-    records = find_candidate_locations(
-        lat,
-        lon,
-        radius_km=1.0,
-        place_types=[LocationType.ELEVATED_VIEWPOINT],
-        client=client,
-        cache=FakeCache(),
+    records = _find(
+        lat, lon, 1.0, [LocationType.ELEVATED_VIEWPOINT], _client_returning({"elements": []})
     )
 
     assert len(records) == 1
@@ -149,16 +183,8 @@ def test_curated_entry_is_deduped_when_osm_already_has_it():
             }
         ]
     }
-    client = _client_returning(payload)
 
-    records = find_candidate_locations(
-        lat,
-        lon,
-        radius_km=1.0,
-        place_types=[LocationType.ELEVATED_VIEWPOINT],
-        client=client,
-        cache=FakeCache(),
-    )
+    records = _find(lat, lon, 1.0, [LocationType.ELEVATED_VIEWPOINT], _client_returning(payload))
 
     assert len(records) == 1
     assert records[0].source == LocationSource.OSM
@@ -166,63 +192,221 @@ def test_curated_entry_is_deduped_when_osm_already_has_it():
 
 def test_overpass_failure_falls_back_to_curated_without_raising():
     lat, lon = TOP_OF_THE_ROCK
-    client = _client_raising(504)
 
-    records = find_candidate_locations(
-        lat,
-        lon,
-        radius_km=1.0,
-        place_types=[LocationType.ELEVATED_VIEWPOINT],
-        client=client,
-        cache=FakeCache(),
-    )
+    records = _find(lat, lon, 1.0, [LocationType.ELEVATED_VIEWPOINT], _client_raising(504))
 
     assert len(records) == 1
     assert records[0].name == "Top of the Rock"
     assert records[0].source == LocationSource.CURATED
 
 
-def test_overpass_failure_is_not_cached():
-    lat, lon = TOP_OF_THE_ROCK
-    cache = FakeCache()
+def test_overpass_failure_with_nothing_to_fall_back_on_raises_unavailable():
+    # An outage must be distinguishable from "this area has no places".
+    with pytest.raises(PlaceDataUnavailable):
+        _find(RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK], _client_raising(504))
 
-    find_candidate_locations(
-        lat,
-        lon,
-        radius_km=1.0,
-        place_types=[LocationType.ELEVATED_VIEWPOINT],
-        client=_client_raising(504),
-        cache=cache,
+
+def test_overpass_failure_is_not_cached_or_stored():
+    lat, lon = TOP_OF_THE_ROCK
+    cache, store = FakeCache(), FakeStore()
+
+    _find(lat, lon, 1.0, [LocationType.ELEVATED_VIEWPOINT], _client_raising(504), cache, store)
+
+    assert cache._store == {}
+    assert store.writes == 0
+
+
+def test_retries_across_mirrors_until_one_succeeds():
+    hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        if len(hosts) == 1:
+            return httpx.Response(503)
+        return httpx.Response(200, json={"elements": [_park_element(1, "Mirror Park")]})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+
+    records = _find(RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK], client)
+
+    assert [r.name for r in records] == ["Mirror Park"]
+    assert len(hosts) == 2
+    assert hosts[0] != hosts[1]
+
+
+def test_http_200_with_runtime_error_remark_is_a_failure_not_an_empty_result():
+    # Overpass reports overload/timeouts as 200 + a remark + no elements.
+    cache, store = FakeCache(), FakeStore()
+    client = _client_returning(
+        {"elements": [], "remark": 'runtime error: Query timed out in "query" at line 3'}
     )
 
-    cache_key = next(iter(cache._store), None)
-    assert cache_key is None
+    with pytest.raises(PlaceDataUnavailable):
+        _find(RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK], client, cache, store)
+
+    assert cache._store == {}
+    assert store.writes == 0
+
+
+def test_html_error_page_with_200_status_is_a_failure():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html><body>Error</body></html>")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+
+    with pytest.raises(PlaceDataUnavailable):
+        _find(RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK], client)
 
 
 def test_second_call_with_same_params_hits_cache_not_overpass():
-    payload = {
-        "elements": [
-            {
-                "type": "node",
-                "id": 1,
-                "lat": RURAL_LAT,
-                "lon": RURAL_LON,
-                "tags": {"name": "Test Park", "leisure": "park"},
-            }
-        ]
-    }
+    payload = {"elements": [_park_element(1, "Test Park")]}
     calls: list[int] = []
-    cache = FakeCache()
+    cache, store = FakeCache(), FakeStore()
 
     for _ in range(2):
-        client = _client_returning(payload, call_counter=calls)
-        find_candidate_locations(
+        _find(
             RURAL_LAT,
             RURAL_LON,
-            radius_km=5.0,
-            place_types=[LocationType.PARK],
-            client=client,
-            cache=cache,
+            5.0,
+            [LocationType.PARK],
+            _client_returning(payload, call_counter=calls),
+            cache,
+            store,
         )
 
     assert len(calls) == 1
+
+
+def test_different_place_type_filters_share_one_overpass_fetch():
+    payload = {
+        "elements": [
+            _park_element(1, "Test Park"),
+            {
+                "type": "node",
+                "id": 2,
+                "lat": RURAL_LAT,
+                "lon": RURAL_LON,
+                "tags": {"name": "Test Beach", "natural": "beach"},
+            },
+        ]
+    }
+    calls: list[int] = []
+    cache, store = FakeCache(), FakeStore()
+
+    parks = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK],
+        _client_returning(payload, calls), cache, store,
+    )
+    beaches = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.BEACH],
+        _client_returning(payload, calls), cache, store,
+    )
+
+    assert len(calls) == 1
+    assert [r.name for r in parks] == ["Test Park"]
+    assert [r.name for r in beaches] == ["Test Beach"]
+
+
+def test_results_beyond_requested_radius_are_filtered_out():
+    # ~8.9km north: inside the 10km cache bucket, outside a 6km request.
+    payload = {"elements": [_park_element(1, "Far Park", dlat=0.08)]}
+    calls: list[int] = []
+    cache, store = FakeCache(), FakeStore()
+
+    near = _find(
+        RURAL_LAT, RURAL_LON, 6.0, [LocationType.PARK],
+        _client_returning(payload, calls), cache, store,
+    )
+    wide = _find(
+        RURAL_LAT, RURAL_LON, 10.0, [LocationType.PARK],
+        _client_returning(payload, calls), cache, store,
+    )
+
+    assert near == []
+    assert [r.name for r in wide] == ["Far Park"]
+    assert len(calls) == 1  # both radii share the 10km bucket
+
+
+def test_fresh_stored_entry_avoids_overpass_and_warms_the_cache():
+    key = _cache_key(RURAL_LAT, RURAL_LON, 5.0)
+    store, cache = FakeStore(), FakeCache()
+    store.entries[key] = StoredPlaces(
+        payload=[
+            {"id": "osm:node/7", "name": "Stored Park", "types": ["park"],
+             "lat": RURAL_LAT, "lon": RURAL_LON}
+        ],
+        fetched_at=_now() - timedelta(days=1),
+    )
+    calls: list[int] = []
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK],
+        _client_returning({"elements": []}, calls), cache, store,
+    )
+
+    assert [r.name for r in records] == ["Stored Park"]
+    assert calls == []
+    assert key in cache._store
+
+
+def test_expired_stored_entry_is_refreshed_when_overpass_is_up():
+    key = _cache_key(RURAL_LAT, RURAL_LON, 5.0)
+    store = FakeStore()
+    store.entries[key] = StoredPlaces(
+        payload=[
+            {"id": "osm:node/7", "name": "Old Park", "types": ["park"],
+             "lat": RURAL_LAT, "lon": RURAL_LON}
+        ],
+        fetched_at=_now() - timedelta(seconds=CACHE_TTL_SECONDS + 3600),
+    )
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK],
+        _client_returning({"elements": [_park_element(1, "New Park")]}), FakeCache(), store,
+    )
+
+    assert [r.name for r in records] == ["New Park"]
+    assert store.writes == 1
+
+
+def test_expired_stored_entry_is_served_when_overpass_is_down():
+    key = _cache_key(RURAL_LAT, RURAL_LON, 5.0)
+    store = FakeStore()
+    store.entries[key] = StoredPlaces(
+        payload=[
+            {"id": "osm:node/7", "name": "Old Park", "types": ["park"],
+             "lat": RURAL_LAT, "lon": RURAL_LON}
+        ],
+        fetched_at=_now() - timedelta(seconds=CACHE_TTL_SECONDS + 3600),
+    )
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK], _client_raising(504), FakeCache(), store
+    )
+
+    assert [r.name for r in records] == ["Old Park"]
+
+
+def test_redis_outage_falls_back_to_a_live_fetch():
+    payload = {"elements": [_park_element(1, "Test Park")]}
+
+    records = _find(
+        RURAL_LAT, RURAL_LON, 5.0, [LocationType.PARK],
+        _client_returning(payload), BrokenCache(), FakeStore(),
+    )
+
+    assert [r.name for r in records] == ["Test Park"]
+
+
+def test_postgres_store_round_trip_and_upsert(db_session):
+    store = PostgresPlaceStore(session_factory=lambda: db_session)
+
+    assert store.get("places:v2:test") is None
+
+    store.set("places:v2:test", [{"id": "x"}])
+    stored = store.get("places:v2:test")
+    assert stored is not None
+    assert stored.payload == [{"id": "x"}]
+
+    store.set("places:v2:test", [{"id": "y"}])
+    assert store.get("places:v2:test").payload == [{"id": "y"}]

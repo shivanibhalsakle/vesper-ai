@@ -36,7 +36,7 @@ class ApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+      throw ApiException(_errorMessage(response));
     }
 
     return SessionResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
@@ -50,7 +50,7 @@ class ApiClient {
   );
 
   if (response.statusCode != 200) {
-    throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+    throw ApiException(_errorMessage(response));
   }
 
   return TripWindowResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);

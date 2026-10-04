@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from app.schemas.session import LocationResult, SessionRequest, SessionResponse, SunEvent
 from app.services.astronomy import get_sun_events
 from app.services.explanation import generate_explanation
-from app.services.places import find_candidate_locations
+from app.services.places import PlaceDataUnavailable, find_candidate_locations
 from app.services.scoring import score_location
 from app.services.weather import fetch_hourly_forecast
 
@@ -21,9 +21,15 @@ TOP_N_RESULTS = 5
 
 @router.post("/session", response_model=SessionResponse)
 def create_session(request: SessionRequest) -> SessionResponse:
-    candidates = find_candidate_locations(
-        request.lat, request.lon, request.radius_km, request.place_types
-    )[:MAX_CANDIDATES_SCORED]
+    try:
+        candidates = find_candidate_locations(
+            request.lat, request.lon, request.radius_km, request.place_types
+        )[:MAX_CANDIDATES_SCORED]
+    except PlaceDataUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail="Place data is temporarily unavailable. Please try again in a moment.",
+        )
 
     scored = []
     try:

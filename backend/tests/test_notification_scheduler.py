@@ -6,6 +6,7 @@ from app.schemas.location import LocationRecord, LocationSource, LocationType
 from app.schemas.weather import HourlyForecast, WeatherForecast
 from app.services.notification_scheduler import rescore_saved_profiles
 from app.services.notifications import PushNotifier
+from app.services.places import PlaceDataUnavailable
 
 TARGET_DATE = date(2026, 7, 27)
 
@@ -160,3 +161,22 @@ def test_notifier_failure_is_reported_not_raised(db_session, monkeypatch):
     results = rescore_saved_profiles(db_session, on_date=TARGET_DATE, notifier=BrokenNotifier())
 
     assert results[0]["status"] == "error"
+
+
+def test_one_profiles_data_outage_does_not_abort_the_run(db_session, monkeypatch):
+    _patch(monkeypatch, [STRONG_MATCH_CANDIDATE])
+
+    def flaky_find(lat, lon, radius_km, place_types, client=None, cache=None, store=None):
+        if abs(lat - 41.0) < 1e-6:
+            raise PlaceDataUnavailable("overpass down")
+        return [STRONG_MATCH_CANDIDATE]
+
+    monkeypatch.setattr(ns_module, "find_candidate_locations", flaky_find)
+    _make_profile(db_session, user_id="user-outage", home_lat=41.0)
+    _make_profile(db_session, user_id="user-ok", home_lat=40.70)
+    notifier = FakeNotifier()
+
+    results = rescore_saved_profiles(db_session, on_date=TARGET_DATE, notifier=notifier)
+
+    assert {r["status"] for r in results} == {"data_unavailable", "sent"}
+    assert len(notifier.calls) == 1

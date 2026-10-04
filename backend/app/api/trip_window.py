@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.schemas.trip_window import TripWindowRequest, TripWindowResponse, TripWindowResult
 from app.services.explanation import generate_explanation
+from app.services.places import PlaceDataUnavailable
 from app.services.trip_window import find_best_day_and_location
 
 router = APIRouter(tags=["trip-window"])
@@ -23,6 +24,11 @@ def create_trip_window(request: TripWindowRequest) -> TripWindowResponse:
             request.place_types,
             request.preferences,
             request.tz_name,
+        )
+    except PlaceDataUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail="Place data is temporarily unavailable. Please try again in a moment.",
         )
     except httpx.HTTPError:
         raise HTTPException(

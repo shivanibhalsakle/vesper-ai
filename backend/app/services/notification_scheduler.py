@@ -1,5 +1,7 @@
+import logging
 from datetime import date, timedelta
 
+import httpx
 from sqlalchemy.orm import Session
 
 from app.models.saved_profile import SavedProfile
@@ -12,10 +14,12 @@ from app.services.notifications import (
     _get_default_notifier,
     send_notification_safely,
 )
-from app.services.places import find_candidate_locations
+from app.services.places import PlaceDataUnavailable, find_candidate_locations
 from app.services.saved_profiles import list_enabled_saved_profiles
 from app.services.scoring import score_location
 from app.services.weather import fetch_hourly_forecast
+
+logger = logging.getLogger(__name__)
 
 # Same bound as the /session endpoint, for the same reason — each candidate
 # is an external Open-Meteo call.
@@ -42,7 +46,13 @@ def rescore_saved_profiles(
             results.append({"profile_id": profile.id, "status": "no_fcm_token"})
             continue
 
-        best = _best_match_for_profile(profile, target_date)
+        try:
+            best = _best_match_for_profile(profile, target_date)
+        except (PlaceDataUnavailable, httpx.HTTPError):
+            # One profile's data outage shouldn't abort the run for everyone else.
+            logger.warning("Skipping profile %s: data unavailable", profile.id, exc_info=True)
+            results.append({"profile_id": profile.id, "status": "data_unavailable"})
+            continue
         if best is None:
             results.append({"profile_id": profile.id, "status": "no_candidates"})
             continue
