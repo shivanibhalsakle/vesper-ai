@@ -132,4 +132,4 @@ def _parse_hourly_response(payload: dict) -> WeatherForecast:
         )
         for i in range(len(times))
     ]
-    return WeatherForecast(hourly=forecasts)
+    return WeatherForecast(hourly=forecasts, timezone=payload.get("timezone"))

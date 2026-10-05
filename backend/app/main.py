@@ -9,6 +9,7 @@ from app.api.me import router as me_router
 from app.api.places import router as places_router
 from app.api.saved_profiles import router as saved_profiles_router
 from app.api.session import router as session_router
+from app.api.sky import router as sky_router
 from app.api.simulation import router as simulation_router
 from app.api.trip_window import router as trip_window_router
 from app.core.config import get_settings
@@ -31,4 +32,5 @@ app.include_router(saved_profiles_router)
 app.include_router(trip_window_router)
 app.include_router(geocode_router)
 app.include_router(places_router)
+app.include_router(sky_router)
 app.include_router(me_router)

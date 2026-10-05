@@ -23,7 +23,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text("Today's sky"), findsOneWidget);
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.text('Where are you looking?'), findsOneWidget);
   });
 
   testWidgets('Profile menu opens the profile placeholder', (tester) async {

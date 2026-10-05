@@ -5,6 +5,7 @@ import 'nearby_spots_screen.dart';
 import 'saved_profiles_screen.dart';
 import 'session_setup_screen.dart';
 import 'settings_screen.dart';
+import 'today_sky_screen.dart';
 
 /// Post-sign-in landing page: three big entry points plus the top-bar menu
 /// (Profile, Settings, Saved).
@@ -64,13 +65,7 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.wb_twilight,
             title: 'How will the sky look today?',
             subtitle: "See today's forecast for any place.",
-            onTap: () => _open(
-              context,
-              const ComingSoonScreen(
-                title: "Today's sky",
-                description: "Choose a place and see how today's sky is shaping up.",
-              ),
-            ),
+            onTap: () => _open(context, const TodaySkyScreen()),
           ),
           _HomeOptionCard(
             icon: Icons.place_outlined,

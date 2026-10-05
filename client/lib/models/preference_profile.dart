@@ -21,6 +21,11 @@ class PreferenceProfile {
     this.unobstructedHorizon = 0.0,
   });
 
+  /// Whether any of the five sky-condition sliders is set. Composition
+  /// sliders (silhouettes etc.) don't affect the forecast match score.
+  bool get hasSkyPreference =>
+      clearSky + dramaticClouds + pinkPurple + goldenOrange + redSky > 0;
+
   PreferenceProfile copyWith({
     double? clearSky,
     double? dramaticClouds,

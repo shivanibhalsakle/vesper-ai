@@ -2,7 +2,7 @@ import math
 from datetime import datetime, timedelta
 
 from app.schemas.preferences import PreferenceProfile
-from app.schemas.scoring import CloudEffect, ColorProbabilities, ScoringResult
+from app.schemas.scoring import CloudEffect, ColorProbabilities, ScoringResult, SkyProfile
 from app.schemas.weather import HourlyForecast
 
 # WMO weather codes (as used by Open-Meteo) that indicate rain, snow, or storms.
@@ -21,15 +21,15 @@ def score_location(
     visibility_likelihood = _visibility_likelihood(hour)
     cloud_effect = _cloud_effect(hour)
     cloud_cover_summary = _cloud_cover_summary(hour)
-    preference_match_score = _preference_match_score(
-        hour, color_probabilities, preferences
-    )
+    sky_profile = _sky_profile(hour, color_probabilities)
+    preference_match_score = _preference_match_score(sky_profile, preferences)
     window_start, window_end, arrival_offset = _viewing_window(event_time, cloud_effect)
     rain_or_unsafe_alert = _rain_or_unsafe_alert(hour)
 
     return ScoringResult(
         visibility_likelihood=visibility_likelihood,
         color_probabilities=color_probabilities,
+        sky_profile=sky_profile,
         cloud_cover_summary=cloud_cover_summary,
         preference_match_score=preference_match_score,
         best_viewing_window_start=window_start,
@@ -112,26 +112,26 @@ def _dominant_band(hour: HourlyForecast) -> str:
     return max(bands, key=bands.get)
 
 
-def _preference_match_score(
-    hour: HourlyForecast,
-    color_probabilities: ColorProbabilities,
-    preferences: PreferenceProfile,
-) -> float:
+def _sky_profile(hour: HourlyForecast, color_probabilities: ColorProbabilities) -> SkyProfile:
     avg_cloud = (hour.cloud_cover_low + hour.cloud_cover_mid + hour.cloud_cover_high) / 3
     clouds_for_color = (hour.cloud_cover_mid + hour.cloud_cover_high) / 2
 
-    satisfaction = {
-        "clear_sky": 1 - avg_cloud / 100,
-        "dramatic_clouds": _bell(clouds_for_color, 65, 25),
-        "pink_purple": (color_probabilities.pink + color_probabilities.purple) / 2,
-        "golden_orange": (color_probabilities.golden + color_probabilities.orange) / 2,
-        "red_sky": color_probabilities.red,
-    }
+    return SkyProfile(
+        clear_sky=_clamp(1 - avg_cloud / 100),
+        dramatic_clouds=_clamp(_bell(clouds_for_color, 65, 25)),
+        pink_purple=_clamp((color_probabilities.pink + color_probabilities.purple) / 2),
+        golden_orange=_clamp((color_probabilities.golden + color_probabilities.orange) / 2),
+        red_sky=_clamp(color_probabilities.red),
+    )
+
+
+def _preference_match_score(sky_profile: SkyProfile, preferences: PreferenceProfile) -> float:
+    satisfaction = sky_profile.model_dump()
 
     weights = {tag: getattr(preferences, tag) for tag in satisfaction}
     total_weight = sum(weights.values())
     if total_weight == 0:
-        return 0.5  # no sky-condition preference expressed â€” neutral score
+        return 0.5  # no sky-condition preference expressed — neutral score
 
     weighted_sum = sum(weights[tag] * satisfaction[tag] for tag in satisfaction)
     return _clamp(weighted_sum / total_weight)

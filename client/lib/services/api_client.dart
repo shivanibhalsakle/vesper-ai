@@ -12,6 +12,7 @@ import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
 import '../models/simulation.dart';
+import '../models/sky_forecast.dart';
 import 'auth_service.dart';
 
 class ApiException implements Exception {
@@ -174,6 +175,21 @@ class ApiClient {
     return (jsonDecode(response.body) as List)
         .map((item) => PickedLocation.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  /// The predicted sky at one point on one day.
+  Future<SkyForecast> fetchSky(SkyRequest request) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/sky'),
+      headers: await _authHeaders(),
+      body: jsonEncode(request.toJson()),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return SkyForecast.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   /// Viewing spots around a point, nearest first. An empty [placeTypes]

@@ -16,3 +16,6 @@ class HourlyForecast(BaseModel):
 
 class WeatherForecast(BaseModel):
     hourly: list[HourlyForecast]
+    # IANA zone the hourly times are expressed in. When the request used
+    # timezone="auto" this is the zone Open-Meteo resolved for the point.
+    timezone: str | None = None

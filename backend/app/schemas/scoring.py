@@ -25,9 +25,24 @@ class ColorProbabilities(BaseModel):
     golden: float
 
 
+class SkyProfile(BaseModel):
+    """How strongly the forecast delivers each sky-condition tag (0-1).
+
+    Same five tags as the user's sky sliders (PreferenceProfile), so a
+    forecast and a preference can be compared like for like.
+    """
+
+    clear_sky: float
+    dramatic_clouds: float
+    pink_purple: float
+    golden_orange: float
+    red_sky: float
+
+
 class ScoringResult(BaseModel):
     visibility_likelihood: float
     color_probabilities: ColorProbabilities
+    sky_profile: SkyProfile
     cloud_cover_summary: str
     preference_match_score: float
     best_viewing_window_start: datetime

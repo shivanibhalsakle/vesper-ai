@@ -2,7 +2,7 @@ from datetime import datetime
 
 from app.schemas.location import LocationRecord, LocationSource, LocationType
 from app.schemas.preferences import PreferenceProfile
-from app.schemas.scoring import CloudEffect, ColorProbabilities, ScoringResult
+from app.schemas.scoring import CloudEffect, ColorProbabilities, ScoringResult, SkyProfile
 from app.services.explanation import generate_explanation
 
 LOCATION = LocationRecord(
@@ -18,6 +18,9 @@ LOCATION = LocationRecord(
 SCORE = ScoringResult(
     visibility_likelihood=0.9,
     color_probabilities=ColorProbabilities(pink=0.3, purple=0.2, orange=0.8, red=0.2, golden=0.85),
+    sky_profile=SkyProfile(
+        clear_sky=0.9, dramatic_clouds=0.3, pink_purple=0.25, golden_orange=0.8, red_sky=0.2
+    ),
     cloud_cover_summary="mostly clear skies",
     preference_match_score=0.75,
     best_viewing_window_start=datetime(2026, 7, 25, 19, 58),
