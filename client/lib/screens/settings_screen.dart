@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../models/best_date.dart';
 import '../models/geocode_result.dart';
 import '../models/location_type.dart';
 import '../models/preference_profile.dart';
 import '../models/session_request.dart';
-import '../models/trip_window.dart';
 import '../models/user_preferences.dart';
 import '../services/api_client.dart';
 import '../widgets/location_picker.dart';
 import '../widgets/preference_sliders.dart';
-import 'trip_window_result_screen.dart';
+import 'best_date_result_screen.dart';
 
 /// Where the user's standing preferences live: home location, search
 /// defaults and sky sliders. Loaded from and saved to the backend.
@@ -102,24 +102,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _toast('Choose a location first.');
       return;
     }
+    if (!_preferences.hasSkyPreference) {
+      _toast('Turn up at least one sky preference first.');
+      return;
+    }
     setState(() => _finding = true);
     try {
-      final today = DateTime.now();
-      final request = TripWindowRequest(
+      final response = await _apiClient.fetchBestDate(BestDateRequest(
         lat: home.lat,
         lon: home.lon,
         event: _event,
-        startDate: today,
-        endDate: today.add(const Duration(days: 6)),
+        startDate: DateTime.now(),
         radiusKm: _radiusKm,
-        placeTypes: _placeTypes.isEmpty ? LocationType.values.toList() : _placeTypes.toList(),
+        placeTypes: _placeTypes.toList(),
         preferences: _preferences,
-      );
-      final response = await _apiClient.fetchTripWindow(request);
+      ));
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => TripWindowResultScreen(response: response, event: _event),
+          builder: (_) => BestDateResultScreen(response: response, preferences: _preferences),
         ),
       );
     } catch (e) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:vesper/models/best_date.dart';
 import 'package:vesper/models/geocode_result.dart';
 import 'package:vesper/models/location_type.dart';
 import 'package:vesper/models/preference_profile.dart';
@@ -31,6 +32,14 @@ class _FakeApiClient extends ApiClient {
 
   @override
   Future<List<PickedLocation>> geocode(String query) async => searchResults;
+
+  final List<BestDateRequest> bestDateRequests = [];
+
+  @override
+  Future<BestDateResponse> fetchBestDate(BestDateRequest request) async {
+    bestDateRequests.add(request);
+    return const BestDateResponse(days: [], best: null, spotsConsidered: 0);
+  }
 }
 
 Future<void> _pump(WidgetTester tester, _FakeApiClient api) async {
@@ -115,6 +124,43 @@ void main() {
     await tester.pump();
 
     expect(find.text('Choose a location first.'), findsOneWidget);
+  });
+
+  testWidgets('Finding a date needs at least one sky preference', (tester) async {
+    final api = _FakeApiClient(
+      stored: const UserPreferences(
+        home: PickedLocation(lat: 40.7, lon: -73.99, label: 'Home'),
+      ),
+    );
+    await _pump(tester, api);
+
+    await tester.tap(find.text('Find me a good viewing date'));
+    await tester.pump();
+
+    expect(find.textContaining('at least one sky preference'), findsOneWidget);
+    expect(api.bestDateRequests, isEmpty);
+  });
+
+  testWidgets('Finding a date sends the form values and opens the result', (tester) async {
+    final api = _FakeApiClient(
+      stored: const UserPreferences(
+        home: PickedLocation(lat: 40.7, lon: -73.99, label: 'Home'),
+        radiusKm: 20,
+        placeTypes: [LocationType.park],
+        preferences: PreferenceProfile(goldenOrange: 0.8),
+      ),
+    );
+    await _pump(tester, api);
+
+    await tester.tap(find.text('Find me a good viewing date'));
+    await tester.pumpAndSettle();
+
+    final request = api.bestDateRequests.single;
+    expect(request.lat, 40.7);
+    expect(request.radiusKm, 20);
+    expect(request.placeTypes, [LocationType.park]);
+    expect(request.preferences.goldenOrange, 0.8);
+    expect(find.text('Your best sky'), findsOneWidget);
   });
 
   testWidgets('A load failure shows a retry button', (tester) async {

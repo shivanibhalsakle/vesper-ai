@@ -3,6 +3,7 @@ import '../models/trip_window.dart';
 
 import 'package:http/http.dart' as http;
 
+import '../models/best_date.dart';
 import '../models/feedback.dart';
 import '../models/geocode_result.dart';
 import '../models/location_type.dart';
@@ -175,6 +176,22 @@ class ApiClient {
     return (jsonDecode(response.body) as List)
         .map((item) => PickedLocation.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Scores the next few days against the user's sky preferences and
+  /// returns the earliest best one.
+  Future<BestDateResponse> fetchBestDate(BestDateRequest request) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/best-date'),
+      headers: await _authHeaders(),
+      body: jsonEncode(request.toJson()),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return BestDateResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   /// The predicted sky at one point on one day.

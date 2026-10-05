@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'best_date_screen.dart';
 import 'coming_soon_screen.dart';
 import 'nearby_spots_screen.dart';
 import 'saved_profiles_screen.dart';
-import 'session_setup_screen.dart';
 import 'settings_screen.dart';
 import 'today_sky_screen.dart';
 
@@ -58,8 +58,7 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.event_available,
             title: 'Pick me a pretty sky',
             subtitle: 'Find the best date in the next week for the sky you like.',
-            // Interim: the existing date search until the new flow is built.
-            onTap: () => _open(context, const SessionSetupScreen()),
+            onTap: () => _open(context, const BestDateScreen()),
           ),
           _HomeOptionCard(
             icon: Icons.wb_twilight,

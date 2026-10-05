@@ -20,3 +20,16 @@ String formatArrivalOffset(int offsetMinutes, String eventLabel) {
 }
 
 String formatPercent(double value) => '${(value * 100).round()}%';
+
+const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const _months = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/// "Wednesday, October 7"
+String formatLongDate(DateTime date) =>
+    '${_weekdays[date.weekday - 1]}, ${_months[date.month - 1]} ${date.day}';
+
+/// "Wed"
+String formatShortWeekday(DateTime date) => _weekdays[date.weekday - 1].substring(0, 3);
