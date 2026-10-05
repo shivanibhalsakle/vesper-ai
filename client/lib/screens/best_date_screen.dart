@@ -92,6 +92,8 @@ class _BestDateScreenState extends State<BestDateScreen> {
           builder: (_) => BestDateResultScreen(
             response: response,
             preferences: _saved.preferences,
+            location: location,
+            apiClient: _apiClient,
           ),
         ),
       );

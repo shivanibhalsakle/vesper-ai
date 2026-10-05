@@ -9,6 +9,7 @@ import '../models/sky_forecast.dart';
 import '../services/api_client.dart';
 import '../utils/format.dart';
 import '../widgets/location_picker.dart';
+import '../widgets/save_date_button.dart';
 import '../widgets/sky_detail_view.dart';
 
 /// Flow 2: how will the sky look today at a place, and where nearby is best
@@ -181,6 +182,20 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
           if (_skyError != null)
             Text(_skyError!, style: TextStyle(color: theme.colorScheme.error)),
           if (_sky != null) SkyDetailView(sky: _sky!, preferences: _preferences),
+          if (_sky != null && _location != null) ...[
+            const SizedBox(height: 16),
+            SaveDateButton(
+              // Key by search so a fresh search resets the saved state.
+              key: ValueKey(_searchId),
+              eventDate: DateTime.now(),
+              event: _sky!.event,
+              lat: _location!.lat,
+              lon: _location!.lon,
+              label: _location!.label,
+              savedScore: _sky!.preferenceMatchScore,
+              apiClient: _apiClient,
+            ),
+          ],
           if (_sky != null || _skyError != null) ...[
             const Divider(height: 40),
             Text('Best spots for this sky', style: theme.textTheme.titleLarge),

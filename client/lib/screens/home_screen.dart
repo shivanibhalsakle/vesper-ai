@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'best_date_screen.dart';
 import 'coming_soon_screen.dart';
 import 'nearby_spots_screen.dart';
-import 'saved_profiles_screen.dart';
+import 'saved_screen.dart';
 import 'settings_screen.dart';
 import 'today_sky_screen.dart';
 
@@ -41,8 +41,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.bookmark_outline),
             tooltip: 'Saved',
-            // Interim: saved searches only; saved dates join them later.
-            onPressed: () => _open(context, const SavedProfilesScreen()),
+            onPressed: () => _open(context, const SavedScreen()),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 from datetime import date, timedelta
 
 import httpx
@@ -31,18 +32,25 @@ def rescore_saved_profiles(
     db: Session,
     on_date: date | None = None,
     notifier: PushNotifier | None = None,
+    skip_user_ids: Collection[str] = frozenset(),
 ) -> list[dict]:
     """Re-scores each saved profile's area for the given date (default:
     tomorrow) and sends a push notification when the best match clears the
     profile's threshold. Returns a per-profile summary, useful for logging
     from the /internal/rescore-notifications endpoint and for testing
     without needing a real notifier.
+
+    Users in `skip_user_ids` already got a reminder for a date they saved
+    themselves; that takes priority, so they get no automatic alert too.
     """
     notifier = notifier or _get_default_notifier()
     target_date = on_date or (date.today() + timedelta(days=1))
 
     results = []
     for profile in list_enabled_saved_profiles(db):
+        if profile.user_id in skip_user_ids:
+            results.append({"profile_id": profile.id, "status": "skipped_saved_date_priority"})
+            continue
         if not profile.fcm_token:
             results.append({"profile_id": profile.id, "status": "no_fcm_token"})
             continue

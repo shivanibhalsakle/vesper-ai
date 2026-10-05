@@ -120,7 +120,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => BestDateResultScreen(response: response, preferences: _preferences),
+          builder: (_) => BestDateResultScreen(
+            response: response,
+            preferences: _preferences,
+            location: home,
+            apiClient: _apiClient,
+          ),
         ),
       );
     } catch (e) {

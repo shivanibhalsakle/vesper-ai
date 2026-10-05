@@ -131,7 +131,7 @@ def _preference_match_score(sky_profile: SkyProfile, preferences: PreferenceProf
     weights = {tag: getattr(preferences, tag) for tag in satisfaction}
     total_weight = sum(weights.values())
     if total_weight == 0:
-        return 0.5  # no sky-condition preference expressed — neutral score
+        return 0.5  # no sky-condition preference expressed â€” neutral score
 
     weighted_sum = sum(weights[tag] * satisfaction[tag] for tag in satisfaction)
     return _clamp(weighted_sum / total_weight)

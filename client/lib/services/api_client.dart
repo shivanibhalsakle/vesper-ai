@@ -12,6 +12,7 @@ import '../models/user_preferences.dart';
 import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
+import '../models/saved_date.dart';
 import '../models/simulation.dart';
 import '../models/sky_forecast.dart';
 import 'auth_service.dart';
@@ -176,6 +177,62 @@ class ApiClient {
     return (jsonDecode(response.body) as List)
         .map((item) => PickedLocation.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Saves a date (idempotent: saving the same place and day again returns
+  /// the existing one).
+  Future<SavedDate> createSavedDate(SavedDateRequest request) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/me/saved-dates'),
+      headers: await _authHeaders(),
+      body: jsonEncode(request.toJson()),
+    );
+
+    if (response.statusCode != 201) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return SavedDate.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<List<SavedDate>> fetchSavedDates() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/me/saved-dates'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return (jsonDecode(response.body) as List)
+        .map((item) => SavedDate.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<SavedDate> setSavedDateNotifications(String id, {required bool enabled}) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/me/saved-dates/$id'),
+      headers: await _authHeaders(),
+      body: jsonEncode({'notification_enabled': enabled}),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return SavedDate.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> deleteSavedDate(String id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/me/saved-dates/$id'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 204) {
+      throw ApiException(_errorMessage(response));
+    }
   }
 
   /// Scores the next few days against the user's sky preferences and

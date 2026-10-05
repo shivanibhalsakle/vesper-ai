@@ -103,7 +103,7 @@ void main() {
     testWidgets('shows the best date, the week and the sky bars', (tester) async {
       await _pump(
         tester,
-        BestDateResultScreen(response: _response, preferences: _taste),
+        BestDateResultScreen(response: _response, preferences: _taste, location: _home),
       );
 
       expect(find.text('Wednesday, October 7'), findsOneWidget);
@@ -122,6 +122,7 @@ void main() {
         const BestDateResultScreen(
           response: BestDateResponse(days: [], best: null, spotsConsidered: 0),
           preferences: _taste,
+          location: _home,
         ),
       );
 

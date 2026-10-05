@@ -43,9 +43,12 @@ def test_accepts_correct_secret_and_runs_rescore(client, monkeypatch):
     _set_secret(monkeypatch, "correct-secret")
     calls = []
     monkeypatch.setattr(
+        internal_module, "send_saved_date_reminders", lambda db: ([], set())
+    )
+    monkeypatch.setattr(
         internal_module,
         "rescore_saved_profiles",
-        lambda db: calls.append(db) or [{"profile_id": "p1", "status": "sent"}],
+        lambda db, skip_user_ids=(): calls.append(db) or [{"profile_id": "p1", "status": "sent"}],
     )
 
     response = client.post(

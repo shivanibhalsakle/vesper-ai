@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../models/best_date.dart';
+import '../models/geocode_result.dart';
 import '../models/preference_profile.dart';
+import '../services/api_client.dart';
 import '../utils/format.dart';
+import '../widgets/save_date_button.dart';
 import '../widgets/sky_detail_view.dart';
 
 /// The answer to "give me a pretty sky": the best day in the coming week,
@@ -11,7 +14,19 @@ class BestDateResultScreen extends StatelessWidget {
   final BestDateResponse response;
   final PreferenceProfile preferences;
 
-  const BestDateResultScreen({super.key, required this.response, required this.preferences});
+  /// Where the search was centred; used to label the saved date when the
+  /// best day has no specific mapped spot.
+  final PickedLocation location;
+
+  final ApiClient? apiClient;
+
+  const BestDateResultScreen({
+    super.key,
+    required this.response,
+    required this.preferences,
+    required this.location,
+    this.apiClient,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +68,16 @@ class BestDateResultScreen extends StatelessWidget {
                 ),
                 const Divider(height: 40),
                 SkyDetailView(sky: best.sky, preferences: preferences),
+                const SizedBox(height: 16),
+                SaveDateButton(
+                  eventDate: best.date,
+                  event: best.sky.event,
+                  lat: best.spot?.lat ?? location.lat,
+                  lon: best.spot?.lon ?? location.lon,
+                  label: best.spot?.name ?? location.label,
+                  savedScore: best.sky.preferenceMatchScore,
+                  apiClient: apiClient,
+                ),
               ],
             ),
     );
