@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'coming_soon_screen.dart';
 import 'saved_profiles_screen.dart';
 import 'session_setup_screen.dart';
+import 'settings_screen.dart';
 
 /// Post-sign-in landing page: three big entry points plus the top-bar menu
 /// (Profile, Settings, Saved).
@@ -33,9 +34,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Settings',
-            // Interim: the old setup screen still holds the preference inputs
-            // until the dedicated Settings page replaces it.
-            onPressed: () => _open(context, const SessionSetupScreen()),
+            onPressed: () => _open(context, const SettingsScreen()),
           ),
           IconButton(
             icon: const Icon(Icons.bookmark_outline),

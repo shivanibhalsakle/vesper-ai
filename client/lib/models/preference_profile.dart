@@ -45,6 +45,21 @@ class PreferenceProfile {
     );
   }
 
+  factory PreferenceProfile.fromJson(Map<String, dynamic> json) {
+    double weight(String key) => (json[key] as num?)?.toDouble() ?? 0.0;
+    return PreferenceProfile(
+      clearSky: weight('clear_sky'),
+      dramaticClouds: weight('dramatic_clouds'),
+      pinkPurple: weight('pink_purple'),
+      goldenOrange: weight('golden_orange'),
+      redSky: weight('red_sky'),
+      silhouettes: weight('silhouettes'),
+      waterReflection: weight('water_reflection'),
+      cityScape: weight('city_skyline'),
+      unobstructedHorizon: weight('unobstructed_horizon'),
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'clear_sky': clearSky,
         'dramatic_clouds': dramaticClouds,

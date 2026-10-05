@@ -4,6 +4,8 @@ import '../models/trip_window.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/feedback.dart';
+import '../models/geocode_result.dart';
+import '../models/user_preferences.dart';
 import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
@@ -124,6 +126,51 @@ class ApiClient {
 
     return (jsonDecode(response.body) as List)
         .map((item) => SavedProfileRecord.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// The user's saved Settings, or null if they've never saved any.
+  Future<UserPreferences?> fetchPreferences() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/me/preferences'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode == 404) return null;
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return UserPreferences.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<UserPreferences> savePreferences(UserPreferences preferences) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/me/preferences'),
+      headers: await _authHeaders(),
+      body: jsonEncode(preferences.toJson()),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return UserPreferences.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Address / place-name search (Geoapify, via our backend's cached proxy).
+  Future<List<PickedLocation>> geocode(String query) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/geocode').replace(queryParameters: {'q': query}),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return (jsonDecode(response.body) as List)
+        .map((item) => PickedLocation.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
