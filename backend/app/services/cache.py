@@ -8,6 +8,7 @@ from app.core.config import get_settings
 class Cache(Protocol):
     def get(self, key: str) -> str | None: ...
     def set(self, key: str, value: str, ttl_seconds: int) -> None: ...
+    def incr(self, key: str, ttl_seconds: int) -> int: ...
 
 
 class RedisCache:
@@ -20,3 +21,12 @@ class RedisCache:
 
     def set(self, key: str, value: str, ttl_seconds: int) -> None:
         self._client.set(key, value, ex=ttl_seconds)
+
+    def incr(self, key: str, ttl_seconds: int) -> int:
+        """Atomically increments a counter and returns the new value. The
+        expiry is set when the counter is created, so it's a fixed window.
+        """
+        count = int(self._client.incr(key))
+        if count == 1:
+            self._client.expire(key, ttl_seconds)
+        return count

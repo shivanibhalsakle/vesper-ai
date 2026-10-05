@@ -67,6 +67,9 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      # Geoapify geocoding key (free tier) — set manually in the dashboard.
+      - key: GEOAPIFY_API_KEY
+        sync: false
       - key: FIREBASE_CREDENTIALS_PATH
         value: /etc/secrets/firebase-service-account.json
       - key: ALLOWED_ORIGINS

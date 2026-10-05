@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     firebase_credentials_path: str = ""
+    # Geoapify geocoding (address / place-name search) — see
+    # app/services/geocoding.py. Free tier: 3,000 requests/day.
+    geoapify_api_key: str = ""
     # Public Overpass instances, tried in order on failure. Configurable so a
     # dead mirror can be swapped out without a code change.
     overpass_urls: str = (

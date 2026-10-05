@@ -12,6 +12,7 @@ from app.models.image_usage import ImageGenerationUsage  # noqa: F401 — regist
 from app.models.osm_place import OsmLoadedRegion, OsmPlace  # noqa: F401 — registers the tables
 from app.models.place_cache import PlaceSearchCache  # noqa: F401 — registers the table
 from app.models.saved_profile import SavedProfile  # noqa: F401 — registers the table on Base
+from app.models.user_preferences import UserPreferences  # noqa: F401 — registers the table
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
