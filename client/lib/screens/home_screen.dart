@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'coming_soon_screen.dart';
+import 'nearby_spots_screen.dart';
 import 'saved_profiles_screen.dart';
 import 'session_setup_screen.dart';
 import 'settings_screen.dart';
@@ -75,13 +76,7 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.place_outlined,
             title: 'Find viewing spots near me',
             subtitle: 'Beaches, parks and viewpoints around a location.',
-            onTap: () => _open(
-              context,
-              const ComingSoonScreen(
-                title: 'Viewing spots',
-                description: 'Enter a location and see good places to watch from.',
-              ),
-            ),
+            onTap: () => _open(context, const NearbySpotsScreen()),
           ),
         ],
       ),

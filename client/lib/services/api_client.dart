@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/feedback.dart';
 import '../models/geocode_result.dart';
+import '../models/location_type.dart';
+import '../models/nearby_spot.dart';
 import '../models/user_preferences.dart';
 import '../models/saved_profile.dart';
 import '../models/session_request.dart';
@@ -171,6 +173,31 @@ class ApiClient {
 
     return (jsonDecode(response.body) as List)
         .map((item) => PickedLocation.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Viewing spots around a point, nearest first. An empty [placeTypes]
+  /// list means all types.
+  Future<List<NearbySpot>> fetchNearbySpots({
+    required double lat,
+    required double lon,
+    required double radiusKm,
+    List<LocationType> placeTypes = const [],
+  }) async {
+    final uri = Uri.parse('$baseUrl/places/nearby').replace(queryParameters: {
+      'lat': '$lat',
+      'lon': '$lon',
+      'radius_km': '$radiusKm',
+      if (placeTypes.isNotEmpty) 'place_types': placeTypes.map((t) => t.apiValue).toList(),
+    });
+    final response = await http.get(uri, headers: await _authHeaders());
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return (jsonDecode(response.body) as List)
+        .map((item) => NearbySpot.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
