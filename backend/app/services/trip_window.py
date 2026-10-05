@@ -8,6 +8,7 @@ from app.schemas.session import SunEvent
 from app.services.astronomy import get_sun_events
 from app.services.places import find_candidate_locations
 from app.services.scoring import score_location
+from app.services.timezones import resolve_timezone
 from app.services.weather import fetch_hourly_forecast
 
 # Same bound as /session, for the same reason — each candidate is an
@@ -34,7 +35,7 @@ def find_best_day_and_location(
     radius_km: float,
     place_types: list[LocationType],
     preferences: PreferenceProfile,
-    tz_name: str = "UTC",
+    tz_name: str = "auto",
 ) -> TripWindowSearchResult:
     candidates = find_candidate_locations(lat, lon, radius_km, place_types)[
         :MAX_CANDIDATES_SCORED
@@ -46,9 +47,11 @@ def find_best_day_and_location(
             candidate.lat, candidate.lon, start_date, tz_name, end_date=end_date
         )
 
+        resolved_tz = resolve_timezone(tz_name, forecast)
+
         current_date = start_date
         while current_date <= end_date:
-            sun_events = get_sun_events(candidate.lat, candidate.lon, current_date, tz_name)
+            sun_events = get_sun_events(candidate.lat, candidate.lon, current_date, resolved_tz)
             event_time = (
                 sun_events.sunset if event == SunEvent.SUNSET else sun_events.sunrise
             )

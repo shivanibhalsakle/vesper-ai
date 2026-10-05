@@ -23,7 +23,7 @@ class TripWindowRequest {
     required this.radiusKm,
     required this.placeTypes,
     required this.preferences,
-    this.tzName = 'UTC',
+    this.tzName = 'auto',
   });
 
   Map<String, dynamic> toJson() => {

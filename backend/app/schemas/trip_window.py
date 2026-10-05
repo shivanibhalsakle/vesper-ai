@@ -21,7 +21,7 @@ class TripWindowRequest(BaseModel):
     radius_km: float = Field(10.0, gt=0, le=100)
     place_types: list[LocationType]
     preferences: PreferenceProfile = PreferenceProfile()
-    tz_name: str = "UTC"
+    tz_name: str = "auto"
 
     @model_validator(mode="after")
     def _validate_date_range(self) -> "TripWindowRequest":

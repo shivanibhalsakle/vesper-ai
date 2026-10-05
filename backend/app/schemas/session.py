@@ -25,7 +25,7 @@ class SessionRequest(BaseModel):
     # IANA timezone name for the queried location. Full timezone
     # auto-detection from lat/lon is a later refinement (needs an
     # additional lookup library); the client supplies it for now.
-    tz_name: str = "UTC"
+    tz_name: str = "auto"
 
 
 class LocationResult(BaseModel):

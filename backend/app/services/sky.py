@@ -6,6 +6,7 @@ from app.schemas.session import SunEvent
 from app.schemas.sky import Confidence, SkyRequest, SkyResponse
 from app.services.astronomy import get_sun_events
 from app.services.scoring import score_location
+from app.services.timezones import resolve_timezone
 from app.services.weather import fetch_hourly_forecast
 
 SKY_TAGS = ("clear_sky", "dramatic_clouds", "pink_purple", "golden_orange", "red_sky")
@@ -24,8 +25,7 @@ def confidence_for_lead_days(lead_days: int) -> Confidence:
 
 def sky_at(request: SkyRequest, now: datetime | None = None) -> SkyResponse:
     forecast = fetch_hourly_forecast(request.lat, request.lon, request.date, request.tz_name)
-    tz_name = forecast.timezone if request.tz_name == "auto" else request.tz_name
-    tz_name = tz_name or "UTC"
+    tz_name = resolve_timezone(request.tz_name, forecast)
 
     sun_events = get_sun_events(request.lat, request.lon, request.date, tz_name)
     event_time = sun_events.sunset if request.event == SunEvent.SUNSET else sun_events.sunrise

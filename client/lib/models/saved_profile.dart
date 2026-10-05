@@ -24,7 +24,7 @@ class SavedProfileRequest {
     this.fcmToken,
     this.notificationEnabled = true,
     this.matchThreshold = 0.75,
-    this.tzName = 'UTC',
+    this.tzName = 'auto',
   });
 
   Map<String, dynamic> toJson() => {

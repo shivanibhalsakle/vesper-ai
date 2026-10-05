@@ -17,6 +17,7 @@ from app.services.notifications import (
 from app.services.places import PlaceDataUnavailable, find_candidate_locations
 from app.services.saved_profiles import list_enabled_saved_profiles
 from app.services.scoring import score_location
+from app.services.timezones import resolve_timezone
 from app.services.weather import fetch_hourly_forecast
 
 logger = logging.getLogger(__name__)
@@ -99,13 +100,16 @@ def _best_match_for_profile(
     best_location = None
     best_score = None
     for candidate in candidates:
-        sun_events = get_sun_events(
-            candidate.lat, candidate.lon, target_date, profile.tz_name
-        )
-        event_time = sun_events.sunset if profile.event == "sunset" else sun_events.sunrise
         forecast = fetch_hourly_forecast(
             candidate.lat, candidate.lon, target_date, profile.tz_name
         )
+        sun_events = get_sun_events(
+            candidate.lat,
+            candidate.lon,
+            target_date,
+            resolve_timezone(profile.tz_name, forecast),
+        )
+        event_time = sun_events.sunset if profile.event == "sunset" else sun_events.sunrise
         score = score_location(event_time, forecast.hourly, preferences)
         if best_score is None or score.preference_match_score > best_score.preference_match_score:
             best_location, best_score = candidate, score

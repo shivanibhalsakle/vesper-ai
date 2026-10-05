@@ -8,6 +8,7 @@ from app.services.astronomy import get_sun_events
 from app.services.explanation import generate_explanation
 from app.services.places import PlaceDataUnavailable, find_candidate_locations
 from app.services.scoring import score_location
+from app.services.timezones import resolve_timezone
 from app.services.weather import fetch_hourly_forecast
 
 router = APIRouter(tags=["session"])
@@ -34,14 +35,19 @@ def create_session(request: SessionRequest) -> SessionResponse:
     scored = []
     try:
         for candidate in candidates:
-            sun_events = get_sun_events(
+            forecast = fetch_hourly_forecast(
                 candidate.lat, candidate.lon, request.date, request.tz_name
+            )
+            # The forecast comes first: with tz_name "auto" it's what tells
+            # us the place's own timezone for the sun times.
+            sun_events = get_sun_events(
+                candidate.lat,
+                candidate.lon,
+                request.date,
+                resolve_timezone(request.tz_name, forecast),
             )
             event_time = (
                 sun_events.sunset if request.event == SunEvent.SUNSET else sun_events.sunrise
-            )
-            forecast = fetch_hourly_forecast(
-                candidate.lat, candidate.lon, request.date, request.tz_name
             )
             score = score_location(event_time, forecast.hourly, request.preferences)
             scored.append((candidate, event_time, score))

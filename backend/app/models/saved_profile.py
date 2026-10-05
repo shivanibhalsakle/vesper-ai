@@ -27,7 +27,7 @@ class SavedProfile(Base):
     radius_km: Mapped[float] = mapped_column(Float, nullable=False)
     place_types: Mapped[list] = mapped_column(JSONB, nullable=False)
     event: Mapped[str] = mapped_column(String, nullable=False)
-    tz_name: Mapped[str] = mapped_column(String, nullable=False, default="UTC")
+    tz_name: Mapped[str] = mapped_column(String, nullable=False, default="auto")
     preference_profile: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)

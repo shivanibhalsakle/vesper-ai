@@ -15,7 +15,7 @@ class SavedProfileCreate(BaseModel):
     radius_km: float = Field(10.0, gt=0, le=100)
     place_types: list[LocationType]
     event: SunEvent
-    tz_name: str = "UTC"
+    tz_name: str = "auto"
     preference_profile: PreferenceProfile
     fcm_token: str | None = None
     notification_enabled: bool = True
