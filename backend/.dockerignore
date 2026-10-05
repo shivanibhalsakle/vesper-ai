@@ -39,4 +39,3 @@ tests/
 .mypy_cache/
 .ruff_cache/
 *.pyo
-celerybeat-schedule
