@@ -13,6 +13,7 @@ from app.models.osm_place import OsmLoadedRegion, OsmPlace  # noqa: F401 — reg
 from app.models.place_cache import PlaceSearchCache  # noqa: F401 — registers the table
 from app.models.saved_date import SavedDate  # noqa: F401 — registers the table
 from app.models.saved_profile import SavedProfile  # noqa: F401 — registers the table on Base
+from app.models.user_profile import UserProfile  # noqa: F401 — registers the table
 from app.models.user_preferences import UserPreferences  # noqa: F401 — registers the table
 
 # this is the Alembic Config object, which provides

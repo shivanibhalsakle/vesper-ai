@@ -16,7 +16,12 @@ import 'best_date_result_screen.dart';
 class SettingsScreen extends StatefulWidget {
   final ApiClient? apiClient;
 
-  const SettingsScreen({super.key, this.apiClient});
+  /// Onboarding hooks: called after a successful save, and when the user
+  /// chooses to skip (which adds a Skip button to the app bar).
+  final VoidCallback? onSaved;
+  final VoidCallback? onSkip;
+
+  const SettingsScreen({super.key, this.apiClient, this.onSaved, this.onSkip});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -87,6 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _apiClient.savePreferences(_current());
       if (!mounted) return;
       _toast('Preferences saved');
+      widget.onSaved?.call();
     } catch (e) {
       if (!mounted) return;
       _toast('Could not save preferences: $e',
@@ -140,7 +146,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        actions: [
+          if (widget.onSkip != null)
+            TextButton(onPressed: widget.onSkip, child: const Text('Skip')),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null

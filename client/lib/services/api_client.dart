@@ -9,6 +9,7 @@ import '../models/geocode_result.dart';
 import '../models/location_type.dart';
 import '../models/nearby_spot.dart';
 import '../models/user_preferences.dart';
+import '../models/user_profile.dart';
 import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
@@ -132,6 +133,36 @@ class ApiClient {
     return (jsonDecode(response.body) as List)
         .map((item) => SavedProfileRecord.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  /// The user's profile, or null if they haven't created one yet (which is
+  /// also how the app knows they still need onboarding).
+  Future<UserProfile?> fetchProfile() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/me/profile'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode == 404) return null;
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return UserProfile.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<UserProfile> saveProfile(UserProfile profile) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/me/profile'),
+      headers: await _authHeaders(),
+      body: jsonEncode(profile.toJson()),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return UserProfile.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   /// The user's saved Settings, or null if they've never saved any.

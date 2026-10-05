@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/user_profile.dart';
 import 'best_date_screen.dart';
-import 'coming_soon_screen.dart';
 import 'nearby_spots_screen.dart';
+import 'profile_screen.dart';
 import 'saved_screen.dart';
 import 'settings_screen.dart';
 import 'today_sky_screen.dart';
@@ -10,7 +11,9 @@ import 'today_sky_screen.dart';
 /// Post-sign-in landing page: three big entry points plus the top-bar menu
 /// (Profile, Settings, Saved).
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final AccountInfo account;
+
+  const HomeScreen({super.key, this.account = const AccountInfo()});
 
   void _open(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
@@ -25,13 +28,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: 'Profile',
-            onPressed: () => _open(
-              context,
-              const ComingSoonScreen(
-                title: 'Profile',
-                description: 'Your name, photo and account details.',
-              ),
-            ),
+            onPressed: () => _open(context, ProfileScreen(account: account)),
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

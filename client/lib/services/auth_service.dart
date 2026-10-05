@@ -1,11 +1,18 @@
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/user_profile.dart';
 import 'push_notification_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   User? get currentUser => _auth.currentUser;
+
+  static AccountInfo accountInfoFor(User? user) => AccountInfo(
+        email: user?.email,
+        displayName: user?.displayName,
+        photoUrl: user?.photoURL,
+      );
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 

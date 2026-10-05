@@ -26,13 +26,15 @@ void main() {
     expect(find.text('Where are you looking?'), findsOneWidget);
   });
 
-  testWidgets('Profile menu opens the profile placeholder', (tester) async {
+  testWidgets('Profile menu opens the profile screen', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
 
     await tester.tap(find.byTooltip('Profile'));
     await tester.pumpAndSettle();
 
+    // No backend in this test, so it lands on the load-error state - what
+    // matters here is that the menu leads to the real profile screen.
     expect(find.text('Profile'), findsOneWidget);
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.textContaining('Could not load your profile'), findsOneWidget);
   });
 }
