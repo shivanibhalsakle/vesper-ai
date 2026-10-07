@@ -101,7 +101,7 @@ class _OnboardingGateState extends State<OnboardingGate> {
           onSkip: () => _go(_Stage.home),
         );
       case _Stage.home:
-        return HomeScreen(account: widget.account);
+        return HomeScreen(account: widget.account, apiClient: _apiClient);
     }
   }
 }

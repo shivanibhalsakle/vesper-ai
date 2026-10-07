@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../utils/format.dart';
 import '../widgets/save_date_button.dart';
 import '../widgets/sky_detail_view.dart';
+import '../widgets/week_chart.dart';
 
 /// The answer to "give me a pretty sky": the best day in the coming week,
 /// how every day scored, and that day's forecast set against the user's taste.
@@ -58,14 +59,7 @@ class BestDateResultScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text('How the week looks', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final day in response.days)
-                      _DayTile(day: day, isBest: day.date == best.date),
-                  ],
-                ),
+                WeekChart(days: response.days, bestDate: best.date),
                 const Divider(height: 40),
                 SkyDetailView(sky: best.sky, preferences: preferences),
                 const SizedBox(height: 16),
@@ -80,39 +74,6 @@ class BestDateResultScreen extends StatelessWidget {
                 ),
               ],
             ),
-    );
-  }
-}
-
-class _DayTile extends StatelessWidget {
-  final DayScore day;
-  final bool isBest;
-
-  const _DayTile({required this.day, required this.isBest});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      key: isBest ? const Key('best-day-tile') : null,
-      width: 72,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: isBest ? scheme.primaryContainer : scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: isBest ? Border.all(color: scheme.primary, width: 2) : null,
-      ),
-      child: Column(
-        children: [
-          Text(formatShortWeekday(day.date)),
-          Text('${day.date.day}', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            formatPercent(day.score),
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
     );
   }
 }

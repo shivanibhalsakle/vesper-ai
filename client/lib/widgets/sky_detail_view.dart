@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/preference_profile.dart';
+import '../models/session_request.dart';
 import '../models/sky_forecast.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import 'score_ring.dart';
+import 'sun_arc.dart';
 
 /// The predicted sky for one place and day: timing, conditions and the
 /// five sky tags as bars. When [preferences] is given, each bar also shows a
@@ -31,20 +34,17 @@ class SkyDetailView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // A Wrap, not a Row: the big score, its caption and the confidence
-        // chip don't all fit on one line on a narrow phone.
-        Wrap(
-          spacing: 12,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (score != null) ...[
-              Text(formatPercent(score), style: theme.textTheme.displaySmall),
-              const Text('match with\nyour taste'),
-            ],
-            Chip(label: Text('${sky.confidence.label} · $_leadText')),
-          ],
-        ),
+        if (score != null)
+          Center(
+            child: Column(
+              children: [
+                ScoreRing(score: score),
+                const SizedBox(height: 4),
+                Text('match with your taste', style: theme.textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        Center(child: Chip(label: Text('${sky.confidence.label} · $_leadText'))),
         const SizedBox(height: 8),
         if (sky.rainOrUnsafeAlert != null) ...[
           Container(
@@ -78,7 +78,16 @@ class SkyDetailView extends StatelessWidget {
             sky.recommendedArrivalOffsetMinutes, eventLabel.toLowerCase())),
         Text('Best viewing window: ${formatClockTime(sky.bestViewingWindowStart)} – '
             '${formatClockTime(sky.bestViewingWindowEnd)}'),
-        const SizedBox(height: 12),
+        // The window drawn on the sun's path: at the end of the day for a
+        // sunset, at the start for a sunrise. Illustrative, not to scale.
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SunArc(
+            height: 56,
+            highlight: sky.event == SunEvent.sunset ? (0.80, 0.96) : (0.04, 0.20),
+          ),
+        ),
+        const SizedBox(height: 4),
         Text('Sun visibility: ${formatPercent(sky.visibilityLikelihood)}'),
         Text(sky.cloudCoverSummary[0].toUpperCase() + sky.cloudCoverSummary.substring(1)),
         const Divider(height: 32),

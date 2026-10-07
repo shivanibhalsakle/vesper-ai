@@ -16,6 +16,10 @@ Key calendarDayKey(DateTime d) => Key(
 /// selects it (tap again to clear), so the list below can filter to it.
 class SavedDatesCalendar extends StatefulWidget {
   final Set<DateTime> markedDates;
+
+  /// Optional colour for each marked day's dot (e.g. by match score);
+  /// days not listed use the primary colour.
+  final Map<DateTime, Color> dotColors;
   final DateTime? selected;
   final ValueChanged<DateTime?> onSelected;
   final DateTime? today;
@@ -23,6 +27,7 @@ class SavedDatesCalendar extends StatefulWidget {
   const SavedDatesCalendar({
     super.key,
     required this.markedDates,
+    this.dotColors = const {},
     required this.selected,
     required this.onSelected,
     this.today,
@@ -147,7 +152,9 @@ class _SavedDatesCalendarState extends State<SavedDatesCalendar> {
                       height: 5,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isSelected ? scheme.onPrimary : scheme.primary,
+                        color: isSelected
+                            ? scheme.onPrimary
+                            : (widget.dotColors[day] ?? scheme.primary),
                       ),
                     )
                   : null,

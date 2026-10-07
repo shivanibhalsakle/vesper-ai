@@ -5,7 +5,9 @@ import '../models/saved_date.dart';
 import '../models/session_request.dart';
 import '../models/sky_forecast.dart';
 import '../services/api_client.dart';
+import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../widgets/gradient_icon_disc.dart';
 import '../widgets/saved_dates_calendar.dart';
 import '../widgets/sky_detail_view.dart';
 import 'saved_profiles_screen.dart';
@@ -153,6 +155,7 @@ class _SavedScreenState extends State<SavedScreen> {
         SavedDatesCalendar(
           today: _today,
           markedDates: {for (final d in _dates) _dayOnly(d.eventDate)},
+          dotColors: _dotColors(),
           selected: selected,
           onSelected: (day) => setState(() => _selectedDay = day),
         ),
@@ -212,6 +215,19 @@ class _SavedScreenState extends State<SavedScreen> {
     );
   }
 
+  // Each saved day's dot takes the spectrum colour of its (best) score, so
+  // the calendar reads as a little heat map of good skies.
+  Map<DateTime, Color> _dotColors() {
+    final best = <DateTime, double>{};
+    for (final d in _dates) {
+      final score = d.savedScore;
+      if (score == null) continue;
+      final day = _dayOnly(d.eventDate);
+      if (score > (best[day] ?? -1)) best[day] = score;
+    }
+    return {for (final e in best.entries) e.key: AppColors.spectrumAt(e.value)};
+  }
+
   Widget _tile(SavedDate date, {required bool isPast}) {
     return _SavedDateTile(
       key: ValueKey(date.id),
@@ -254,7 +270,13 @@ class _SavedDateTile extends StatelessWidget {
       child: ExpansionTile(
         shape: const Border(),
         collapsedShape: const Border(),
-        leading: Icon(date.event == SunEvent.sunrise ? Icons.wb_twilight : Icons.wb_sunny_outlined),
+        leading: GradientIconDisc(
+          icon: date.event == SunEvent.sunrise ? Icons.wb_twilight : Icons.wb_sunny_outlined,
+          // Sunrises sit at the dawn end of the spectrum, sunsets at dusk's.
+          from: date.event == SunEvent.sunrise ? AppColors.spectrum[0] : AppColors.spectrum[2],
+          to: date.event == SunEvent.sunrise ? AppColors.spectrum[2] : AppColors.spectrum[4],
+          size: 40,
+        ),
         title: Text(formatLongDate(date.eventDate)),
         subtitle: Text(
           '${date.event.label} · ${date.label}'
