@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/geocode_result.dart';
@@ -26,25 +28,62 @@ class HomeScreen extends StatefulWidget {
   final AccountInfo account;
   final ApiClient? apiClient;
 
-  /// Injectable clock, for tests.
+  /// A fixed "now" for tests; the screen then never ticks.
   final DateTime? now;
 
-  const HomeScreen({super.key, this.account = const AccountInfo(), this.apiClient, this.now});
+  /// A replaceable clock for tests that want to watch the countdown tick.
+  final DateTime Function()? clock;
+
+  const HomeScreen({
+    super.key,
+    this.account = const AccountInfo(),
+    this.apiClient,
+    this.now,
+    this.clock,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// How often the sky, greeting and sunset countdown catch up with the clock.
+  static const _tickEvery = Duration(seconds: 30);
+
   late final ApiClient _apiClient = widget.apiClient ?? ApiClient();
 
   String? _name;
   PickedLocation? _home;
 
+  late DateTime _now = _readClock();
+  Timer? _ticker;
+
+  DateTime _readClock() => widget.now ?? (widget.clock ?? DateTime.now)();
+
   @override
   void initState() {
     super.initState();
+    // Keep the countdown honest while the screen is open: the number
+    // changes, the sun creeps along its arc, and the sky changes mood at
+    // the turn of each part of the day. A fixed `now` (tests) never ticks.
+    if (widget.now == null) {
+      _ticker = Timer.periodic(_tickEvery, (_) {
+        if (mounted) setState(() => _now = _readClock());
+      });
+    }
     _loadPersonalTouches();
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.now != null && widget.now != oldWidget.now) _now = widget.now!;
   }
 
   // The name and home spot only personalise the page, so failing to fetch
@@ -84,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final now = widget.now ?? DateTime.now();
+    final now = _now;
     final phase = DayPhase.at(now);
     final greeting = greetingFor(now);
     final first = _firstName;

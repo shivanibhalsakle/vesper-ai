@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_motion.dart';
 import '../theme/app_theme.dart';
 
 /// The sun's path across the sky as a half-circle. It can show how far the
@@ -30,6 +31,9 @@ class SunArc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final duration = AppMotion.reduced(context) ? Duration.zero : AppMotion.dataDuration;
+    final highlight = this.highlight;
+
     // Capped width keeps the arc a pleasing half-circle on wide screens
     // instead of stretching into a flat sliver.
     return Center(
@@ -38,11 +42,26 @@ class SunArc extends StatelessWidget {
         child: SizedBox(
           height: height,
           width: double.infinity,
-          child: CustomPaint(
-            painter: _SunArcPainter(
-              progress: progress,
-              highlight: highlight,
-              dotColor: dotColor,
+          // The sun travels from the horizon to where it is (and, if the
+          // position later changes, glides to the new spot), while the
+          // highlighted stretch draws itself in.
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: progress ?? 0),
+            duration: duration,
+            curve: Curves.easeInOutCubic,
+            builder: (context, travelled, _) => TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: duration,
+              curve: AppMotion.curve,
+              builder: (context, drawn, _) => CustomPaint(
+                painter: _SunArcPainter(
+                  progress: progress == null ? null : travelled,
+                  highlight: highlight == null
+                      ? null
+                      : (highlight.$1, highlight.$1 + (highlight.$2 - highlight.$1) * drawn),
+                  dotColor: dotColor,
+                ),
+              ),
             ),
           ),
         ),

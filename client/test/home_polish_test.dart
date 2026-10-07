@@ -163,6 +163,7 @@ void main() {
         theme: buildAppTheme(),
         home: const Scaffold(body: Center(child: ScoreRing(score: 0.84))),
       ));
+      await tester.pumpAndSettle(); // the number counts up to the score
 
       final handle = tester.ensureSemantics();
       expect(find.text('84%'), findsOneWidget);
@@ -177,6 +178,7 @@ void main() {
           body: Column(children: [ScoreRing(score: 1.7), ScoreRing(score: -1)]),
         ),
       ));
+      await tester.pumpAndSettle();
 
       expect(find.text('100%'), findsOneWidget);
       expect(find.text('0%'), findsOneWidget);
@@ -216,15 +218,13 @@ void main() {
     testWidgets('higher scores draw taller bars', (tester) async {
       await pump(tester);
 
-      double barHeight(String percentText) {
-        final column =
-            find.ancestor(of: find.text(percentText), matching: find.byType(Column)).first;
-        final box = find.descendant(of: column, matching: find.byType(Container)).first;
-        return tester.getSize(box).height;
-      }
+      await tester.pumpAndSettle(); // bars grow in
 
-      expect(barHeight('84%'), greaterThan(barHeight('55%')));
-      expect(barHeight('55%'), greaterThan(barHeight('30%')));
+      // Scores by date: 8th = 0.84, 7th = 0.55, 10th = 0.30.
+      double barHeight(int day) => tester.getSize(find.byKey(Key('week-bar-$day'))).height;
+
+      expect(barHeight(8), greaterThan(barHeight(7)));
+      expect(barHeight(7), greaterThan(barHeight(10)));
     });
   });
 

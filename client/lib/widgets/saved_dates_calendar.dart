@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_motion.dart';
+import 'animated_reveal.dart';
+
 const _monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -124,43 +127,92 @@ class _SavedDatesCalendarState extends State<SavedDatesCalendar> {
     final isSelected = selected == day;
     final isToday = day == _today;
     final scheme = theme.colorScheme;
+    final reduced = AppMotion.reduced(context);
+    final quick = reduced ? Duration.zero : const Duration(milliseconds: 200);
 
     return InkWell(
       key: calendarDayKey(day),
       customBorder: const CircleBorder(),
       onTap: () => widget.onSelected(isSelected ? null : day),
-      child: Container(
-        margin: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isSelected ? scheme.primary : null,
-          border: isToday && !isSelected ? Border.all(color: scheme.primary) : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '${day.day}',
-              style: TextStyle(color: isSelected ? scheme.onPrimary : null),
-            ),
-            SizedBox(
-              height: 6,
-              child: isMarked
-                  ? Container(
-                      key: const Key('saved-dot'),
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected
-                            ? scheme.onPrimary
-                            : (widget.dotColors[day] ?? scheme.primary),
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // One ripple, sent out the moment a day becomes selected.
+          if (isSelected && !reduced)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: TweenAnimationBuilder<double>(
+                  key: const Key('selection-ripple'),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 550),
+                  curve: Curves.easeOut,
+                  builder: (context, t, _) => Opacity(
+                    opacity: (1 - t) * 0.6,
+                    child: Transform.scale(
+                      scale: 1 + 0.7 * t,
+                      child: Container(
+                        margin: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: scheme.primary, width: 2),
+                        ),
                       ),
-                    )
-                  : null,
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
+          AnimatedContainer(
+            duration: quick,
+            margin: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? scheme.primary : Colors.transparent,
+              border: isToday && !isSelected
+                  ? Border.all(color: scheme.primary)
+                  : Border.all(color: Colors.transparent),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedDefaultTextStyle(
+                  duration: quick,
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        color: isSelected ? scheme.onPrimary : null,
+                      ),
+                  child: Text('${day.day}'),
+                ),
+                SizedBox(
+                  height: 6,
+                  child: isMarked
+                      ? AnimatedReveal(
+                          // Saved dots pop in, a little out of step with each
+                          // other so the month sparkles rather than blinks.
+                          delay: Duration(milliseconds: 100 + (day.day % 6) * 40),
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOutBack,
+                          builder: (context, t) => Transform.scale(
+                            scale: t.clamp(0.0, 1.3),
+                            child: Container(
+                              key: const Key('saved-dot'),
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? scheme.onPrimary
+                                    : (widget.dotColors[day] ?? scheme.primary),
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

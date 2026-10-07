@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import 'animated_reveal.dart';
 
 /// A ring that fills to [score] (0 to 1) in the dawn-to-dusk spectrum, with
 /// the percentage in brush script at its centre. The ring's end colour is
 /// the spectrum colour for the score, matching the sliders and bars.
+///
+/// When it first appears the ring fills and the number counts up to the
+/// score. Screen readers get the final value straight away.
 class ScoreRing extends StatelessWidget {
   final double score;
   final double size;
@@ -24,15 +28,20 @@ class ScoreRing extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            CustomPaint(size: Size.square(size), painter: _RingPainter(clamped)),
-            Text(
-              formatPercent(clamped),
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(fontSize: size * 0.3),
-            ),
-          ],
+        child: AnimatedReveal(
+          builder: (context, t) {
+            final shown = clamped * t;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(size: Size.square(size), painter: _RingPainter(shown)),
+                Text(
+                  formatPercent(shown),
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(fontSize: size * 0.3),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

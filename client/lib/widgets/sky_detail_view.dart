@@ -5,6 +5,8 @@ import '../models/session_request.dart';
 import '../models/sky_forecast.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../theme/app_motion.dart';
+import 'animated_reveal.dart';
 import 'score_ring.dart';
 import 'sun_arc.dart';
 
@@ -102,22 +104,30 @@ class SkyDetailView extends StatelessWidget {
           ),
         const SizedBox(height: 8),
         LevelBar(
+            index: 0,
             label: 'Clear sky, visible sun',
             level: sky.skyProfile.clearSky,
             wanted: wanted?.clearSky),
         LevelBar(
+            index: 1,
             label: 'Dramatic clouds',
             level: sky.skyProfile.dramaticClouds,
             wanted: wanted?.dramaticClouds),
         LevelBar(
+            index: 2,
             label: 'Pink / purple tones',
             level: sky.skyProfile.pinkPurple,
             wanted: wanted?.pinkPurple),
         LevelBar(
+            index: 3,
             label: 'Golden / orange light',
             level: sky.skyProfile.goldenOrange,
             wanted: wanted?.goldenOrange),
-        LevelBar(label: 'Red skies', level: sky.skyProfile.redSky, wanted: wanted?.redSky),
+        LevelBar(
+            index: 4,
+            label: 'Red skies',
+            level: sky.skyProfile.redSky,
+            wanted: wanted?.redSky),
         const SizedBox(height: 8),
         Text(
           'A forecast-based estimate, not a guarantee. Skies are hardest to call '
@@ -132,12 +142,23 @@ class SkyDetailView extends StatelessWidget {
 /// A read-only bar filled with the dawn-to-dusk spectrum up to [level]. When
 /// [wanted] is set, a small sun sits at that position: how much the user
 /// asked for, so forecast and taste can be compared at a glance.
+///
+/// The bar sweeps in from the left when first shown (a group of bars
+/// staggered by [index]) and the sun pops into place as the sweep ends. The
+/// percentage label is there from the start.
 class LevelBar extends StatelessWidget {
   final String label;
   final double level;
   final double? wanted;
+  final int index;
 
-  const LevelBar({super.key, required this.label, required this.level, this.wanted});
+  const LevelBar({
+    super.key,
+    required this.label,
+    required this.level,
+    this.wanted,
+    this.index = 0,
+  });
 
   static const _barHeight = 12.0;
   static const _sunSize = 24.0;
@@ -157,57 +178,66 @@ class LevelBar extends StatelessWidget {
             children: [Text(label), Text(formatPercent(level))],
           ),
           const SizedBox(height: 4),
-          SizedBox(
-            height: _sunSize,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                const barTop = (_sunSize - _barHeight) / 2;
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: barTop,
-                      height: _barHeight,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(_barHeight / 2),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      top: barTop,
-                      height: _barHeight,
-                      width: width * level.clamp(0.0, 1.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(_barHeight / 2),
-                        // The gradient spans the whole bar and is revealed up
-                        // to the level, so a colour always means the same
-                        // amount (not "squeezed" into short bars).
-                        child: OverflowBox(
-                          alignment: Alignment.centerLeft,
-                          minWidth: width,
-                          maxWidth: width,
-                          child: const DecoratedBox(
-                            decoration: BoxDecoration(gradient: AppColors.spectrumGradient),
+          AnimatedReveal(
+            delay: AppMotion.dataDelay + AppMotion.barStagger * index,
+            duration: AppMotion.barDuration,
+            builder: (context, t) => SizedBox(
+              height: _sunSize,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  const barTop = (_sunSize - _barHeight) / 2;
+                  // The sun waits for the sweep to be most of the way across.
+                  final sunT = Curves.easeOutBack.transform(((t - 0.65) / 0.35).clamp(0.0, 1.0));
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: barTop,
+                        height: _barHeight,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(_barHeight / 2),
                           ),
                         ),
                       ),
-                    ),
-                    if (marker != null)
                       Positioned(
-                        left: (width * marker.clamp(0.0, 1.0) - _sunSize / 2)
-                            .clamp(-2.0, width - _sunSize + 2),
-                        top: 0,
-                        child: const _SunMarker(key: Key('preference-marker')),
+                        left: 0,
+                        top: barTop,
+                        height: _barHeight,
+                        width: width * level.clamp(0.0, 1.0) * t,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(_barHeight / 2),
+                          // The gradient spans the whole bar and is revealed
+                          // up to the level, so a colour always means the same
+                          // amount (not "squeezed" into short bars).
+                          child: OverflowBox(
+                            alignment: Alignment.centerLeft,
+                            minWidth: width,
+                            maxWidth: width,
+                            child: const DecoratedBox(
+                              decoration: BoxDecoration(gradient: AppColors.spectrumGradient),
+                            ),
+                          ),
+                        ),
                       ),
-                  ],
-                );
-              },
+                      if (marker != null)
+                        Positioned(
+                          left: (width * marker.clamp(0.0, 1.0) - _sunSize / 2)
+                              .clamp(-2.0, width - _sunSize + 2),
+                          top: 0,
+                          child: Transform.scale(
+                            scale: sunT,
+                            child: const _SunMarker(key: Key('preference-marker')),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ],

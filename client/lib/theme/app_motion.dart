@@ -24,6 +24,15 @@ class AppMotion {
   /// Longest an item's entrance can take, delay included.
   static Duration get riseWorstCase => riseDuration + riseStagger * riseMaxSteps;
 
+  /// Data coming alive: rings filling, arcs travelling, bars sweeping in.
+  /// These play on first appearance while the numbers are already readable
+  /// (labels never wait), after a short [dataDelay] so they start once their
+  /// screen has mostly risen into place.
+  static const dataDuration = Duration(milliseconds: 900);
+  static const dataDelay = Duration(milliseconds: 150);
+  static const barDuration = Duration(milliseconds: 600);
+  static const barStagger = Duration(milliseconds: 70);
+
   static const curve = Curves.easeOutCubic;
 
   /// Whether the user asked the system for less motion.

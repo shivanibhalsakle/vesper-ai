@@ -52,6 +52,7 @@ void main() {
 
   testWidgets('Shows the match score and confidence when available', (tester) async {
     await _pump(tester, SkyDetailView(sky: _sky(lead: 5)));
+    await tester.pumpAndSettle(); // the ring counts up to its score
 
     expect(find.text('82%'), findsOneWidget);
     expect(find.text('Low confidence · in 5 days'), findsOneWidget);
