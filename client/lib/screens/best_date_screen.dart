@@ -7,6 +7,7 @@ import '../models/session_request.dart';
 import '../models/user_preferences.dart';
 import '../services/api_client.dart';
 import '../widgets/location_picker.dart';
+import '../widgets/sky_loader.dart';
 import 'best_date_result_screen.dart';
 import 'settings_screen.dart';
 
@@ -126,7 +127,15 @@ class _BestDateScreenState extends State<BestDateScreen> {
                     ),
                   ),
                 )
-              : _content(context),
+              : _searching
+                  // The search takes a few seconds: give it the whole screen
+                  // and something lovely to look at.
+                  ? const SkyLoader(
+                      message: 'Looking at the next 7 days',
+                      height: null,
+                      showWordmark: true,
+                    )
+                  : _content(context),
     );
   }
 
@@ -186,19 +195,8 @@ class _BestDateScreenState extends State<BestDateScreen> {
         const SizedBox(height: 24),
         FilledButton(
           onPressed: _location == null || !hasTaste || _searching ? null : _findDate,
-          child: _searching
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Continue with saved preferences'),
+          child: const Text('Continue with saved preferences'),
         ),
-        if (_searching)
-          const Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: Text('Looking at the next 7 days…', textAlign: TextAlign.center),
-          ),
         if (_searchError != null)
           Padding(
             padding: const EdgeInsets.only(top: 12),

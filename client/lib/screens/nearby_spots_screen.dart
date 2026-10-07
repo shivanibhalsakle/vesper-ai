@@ -5,6 +5,7 @@ import '../models/location_type.dart';
 import '../models/nearby_spot.dart';
 import '../services/api_client.dart';
 import '../widgets/location_picker.dart';
+import '../widgets/sky_loader.dart';
 
 /// Flow 3: pick a place, see good viewing spots around it.
 class NearbySpotsScreen extends StatefulWidget {
@@ -110,15 +111,10 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
           const SizedBox(height: 8),
           FilledButton(
             onPressed: _location == null || _searching ? null : _findSpots,
-            child: _searching
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Find viewing spots'),
+            child: const Text('Find viewing spots'),
           ),
           const SizedBox(height: 16),
+          if (_searching) const SkyLoader(message: 'Finding viewing spots'),
           if (_error != null)
             Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
           if (spots != null && spots.isEmpty)

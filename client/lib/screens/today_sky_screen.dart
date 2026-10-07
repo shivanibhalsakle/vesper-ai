@@ -10,6 +10,7 @@ import '../services/api_client.dart';
 import '../utils/format.dart';
 import '../widgets/location_picker.dart';
 import '../widgets/save_date_button.dart';
+import '../widgets/sky_loader.dart';
 import '../widgets/sky_detail_view.dart';
 
 /// Flow 2: how will the sky look today at a place, and where nearby is best
@@ -174,11 +175,10 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
             onPressed: _location == null || busy ? null : _show,
             child: Text(busy ? 'Reading the sky…' : "Show today's sky"),
           ),
-          if (busy) const Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: LinearProgressIndicator(),
-          ),
           const SizedBox(height: 24),
+          // Until the sky arrives (the spots can still be loading after it).
+          if (_loadingSky && _sky == null)
+            const SkyLoader(message: 'Reading the sky'),
           if (_skyError != null)
             Text(_skyError!, style: TextStyle(color: theme.colorScheme.error)),
           if (_sky != null) SkyDetailView(sky: _sky!, preferences: _preferences),
