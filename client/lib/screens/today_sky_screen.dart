@@ -9,6 +9,9 @@ import '../models/sky_forecast.dart';
 import '../services/api_client.dart';
 import '../utils/format.dart';
 import '../widgets/location_picker.dart';
+import '../theme/flows.dart';
+import '../widgets/flow_header.dart';
+import '../widgets/rise_in.dart';
 import '../widgets/save_date_button.dart';
 import '../widgets/sky_loader.dart';
 import '../widgets/sky_detail_view.dart';
@@ -138,6 +141,8 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          FlowHeader(flow: Flows.todaySky),
+          const SizedBox(height: 24),
           Text('Where are you looking?', style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
           LocationPicker(
@@ -207,10 +212,13 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
               const Text('No viewing spots found in this radius.'),
             if (_spots != null)
               for (var i = 0; i < _spots!.length; i++)
-                _SpotCard(
-                  rank: i + 1,
-                  spot: _spots![i],
-                  showMatch: _preferences.hasSkyPreference,
+                RiseIn(
+                  index: i,
+                  child: _SpotCard(
+                    rank: i + 1,
+                    spot: _spots![i],
+                    showMatch: _preferences.hasSkyPreference,
+                  ),
                 ),
           ],
         ],

@@ -4,7 +4,10 @@ import '../models/geocode_result.dart';
 import '../models/location_type.dart';
 import '../models/nearby_spot.dart';
 import '../services/api_client.dart';
+import '../theme/flows.dart';
+import '../widgets/flow_header.dart';
 import '../widgets/location_picker.dart';
+import '../widgets/rise_in.dart';
 import '../widgets/sky_loader.dart';
 
 /// Flow 3: pick a place, see good viewing spots around it.
@@ -87,6 +90,8 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          FlowHeader(flow: Flows.spots),
+          const SizedBox(height: 24),
           Text('Where are you looking?', style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
           LocationPicker(
@@ -124,7 +129,8 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
           if (spots != null && spots.isNotEmpty) ...[
             Text('${spots.length} spots nearby', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            for (final spot in spots) _SpotTile(spot: spot),
+            for (var i = 0; i < spots.length; i++)
+              RiseIn(index: i, child: _SpotTile(spot: spots[i])),
           ],
         ],
       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_motion.dart';
+
 /// The Vesper palette: white pages, brown actions, beige surfaces. Every
 /// colour in the app should come from here (via the theme), so changing the
 /// look is a one-file edit.
@@ -114,6 +116,16 @@ ThemeData buildAppTheme() {
 
   return base.copyWith(
     scaffoldBackgroundColor: AppColors.white,
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: VesperPageTransitionsBuilder(),
+        TargetPlatform.iOS: VesperPageTransitionsBuilder(),
+        TargetPlatform.macOS: VesperPageTransitionsBuilder(),
+        TargetPlatform.windows: VesperPageTransitionsBuilder(),
+        TargetPlatform.linux: VesperPageTransitionsBuilder(),
+        TargetPlatform.fuchsia: VesperPageTransitionsBuilder(),
+      },
+    ),
     textTheme: _textTheme(base.textTheme),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.white,

@@ -5,9 +5,11 @@ import '../models/user_preferences.dart';
 import '../models/user_profile.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
+import '../theme/flows.dart';
 import '../utils/day_phase.dart';
 import '../utils/sun_times.dart';
 import '../widgets/gradient_icon_disc.dart';
+import '../widgets/rise_in.dart';
 import '../widgets/sky_header.dart';
 import '../widgets/sun_arc.dart';
 import 'best_date_screen.dart';
@@ -131,38 +133,44 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  first == null ? greeting : '$greeting, $first',
-                  style: theme.textTheme.displaySmall?.copyWith(fontSize: 30),
+                RiseIn(
+                  index: 0,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        first == null ? greeting : '$greeting, $first',
+                        style: theme.textTheme.displaySmall?.copyWith(fontSize: 30),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('What would you like to do?', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'What would you like to do?',
-                  style: theme.textTheme.titleMedium,
+                RiseIn(
+                  index: 1,
+                  child: _HomeOptionCard(
+                    flow: Flows.bestDate,
+                    onTap: () => _open(const BestDateScreen()),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                _HomeOptionCard(
-                  icon: Icons.event_available,
-                  colors: [AppColors.spectrum[2], AppColors.spectrum[3]],
-                  title: 'Pick me a pretty sky',
-                  subtitle: 'Find the best date in the next week for the sky you like.',
-                  onTap: () => _open(const BestDateScreen()),
+                RiseIn(
+                  index: 2,
+                  child: _HomeOptionCard(
+                    flow: Flows.todaySky,
+                    onTap: () => _open(const TodaySkyScreen()),
+                  ),
                 ),
-                _HomeOptionCard(
-                  icon: Icons.wb_twilight,
-                  colors: [AppColors.spectrum[3], AppColors.spectrum[4]],
-                  title: 'How will the sky look today?',
-                  subtitle: "See today's forecast for any place.",
-                  onTap: () => _open(const TodaySkyScreen()),
+                RiseIn(
+                  index: 3,
+                  child: _HomeOptionCard(
+                    flow: Flows.spots,
+                    onTap: () => _open(const NearbySpotsScreen()),
+                  ),
                 ),
-                _HomeOptionCard(
-                  icon: Icons.place_outlined,
-                  colors: [AppColors.spectrum[4], AppColors.spectrum[5]],
-                  title: 'Find viewing spots near me',
-                  subtitle: 'Beaches, parks and viewpoints around a location.',
-                  onTap: () => _open(const NearbySpotsScreen()),
-                ),
-                if (_home != null) _SunCard(home: _home!, now: now),
+                if (_home != null)
+                  RiseIn(index: 4, child: _SunCard(home: _home!, now: now)),
               ],
             ),
           ),
@@ -173,19 +181,10 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeOptionCard extends StatelessWidget {
-  final IconData icon;
-  final List<Color> colors;
-  final String title;
-  final String subtitle;
+  final FlowStyle flow;
   final VoidCallback onTap;
 
-  const _HomeOptionCard({
-    required this.icon,
-    required this.colors,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
+  const _HomeOptionCard({required this.flow, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -199,15 +198,22 @@ class _HomeOptionCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              GradientIconDisc(icon: icon, from: colors[0], to: colors[1], size: 48),
+              // The disc glides into the header of the screen this opens.
+              GradientIconDisc(
+                icon: flow.icon,
+                from: flow.from,
+                to: flow.to,
+                size: 48,
+                heroTag: flow.heroTag,
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.titleMedium),
+                    Text(flow.title, style: theme.textTheme.titleMedium),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: theme.textTheme.bodyMedium),
+                    Text(flow.subtitle, style: theme.textTheme.bodyMedium),
                   ],
                 ),
               ),

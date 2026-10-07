@@ -8,6 +8,7 @@ import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/gradient_icon_disc.dart';
+import '../widgets/rise_in.dart';
 import '../widgets/saved_dates_calendar.dart';
 import '../widgets/sky_detail_view.dart';
 import 'saved_profiles_screen.dart';
@@ -185,13 +186,15 @@ class _SavedScreenState extends State<SavedScreen> {
         if (upcoming.isNotEmpty) ...[
           Text('Upcoming', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          for (final date in upcoming) _tile(date, isPast: false),
+          for (var i = 0; i < upcoming.length; i++)
+            RiseIn(index: i, child: _tile(upcoming[i], isPast: false)),
         ],
         if (past.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text('Past', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          for (final date in past) _tile(date, isPast: true),
+          for (var i = 0; i < past.length; i++)
+            RiseIn(index: i, child: _tile(past[i], isPast: true)),
         ],
         const Divider(height: 40),
         ListTile(

@@ -6,6 +6,8 @@ import '../models/preference_profile.dart';
 import '../models/session_request.dart';
 import '../models/user_preferences.dart';
 import '../services/api_client.dart';
+import '../theme/flows.dart';
+import '../widgets/flow_header.dart';
 import '../widgets/location_picker.dart';
 import '../widgets/sky_loader.dart';
 import 'best_date_result_screen.dart';
@@ -146,6 +148,8 @@ class _BestDateScreenState extends State<BestDateScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        FlowHeader(flow: Flows.bestDate),
+        const SizedBox(height: 24),
         Text('Your sky taste', style: theme.textTheme.titleLarge),
         const SizedBox(height: 8),
         if (hasTaste) ...[
