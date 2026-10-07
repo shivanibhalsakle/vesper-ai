@@ -13,6 +13,7 @@ import 'package:vesper/screens/best_date_result_screen.dart';
 import 'package:vesper/screens/best_date_screen.dart';
 import 'package:vesper/services/api_client.dart';
 import 'package:vesper/utils/format.dart';
+import 'package:vesper/widgets/spectrum_slider.dart';
 
 const _sky = SkyForecast(
   event: SunEvent.sunset,
@@ -78,9 +79,16 @@ class _FakeApiClient extends ApiClient {
   UserPreferences? stored;
   Object? bestError;
   final List<BestDateRequest> requests = [];
+  final List<UserPreferences> saved = [];
 
   @override
   Future<UserPreferences?> fetchPreferences() async => stored;
+
+  @override
+  Future<UserPreferences> savePreferences(UserPreferences preferences) async {
+    saved.add(preferences);
+    return preferences;
+  }
 
   @override
   Future<BestDateResponse> fetchBestDate(BestDateRequest request) async {
@@ -131,14 +139,54 @@ void main() {
   });
 
   group('BestDateScreen', () {
-    testWidgets('without sky preferences, asks the user to set them', (tester) async {
+    testWidgets('without saved preferences the sliders start empty and the search waits',
+        (tester) async {
       final api = _FakeApiClient()..stored = const UserPreferences(home: _home);
       await _pump(tester, BestDateScreen(apiClient: api));
 
-      expect(find.textContaining("haven't set any sky preferences"), findsOneWidget);
-      expect(find.text('Set my preferences'), findsOneWidget);
+      expect(find.byType(SpectrumSlider), findsNWidgets(5));
+      expect(find.textContaining('Tell us what you love'), findsOneWidget);
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNull);
+    });
+
+    testWidgets('the sliders start at the saved taste; there is no Edit preferences button',
+        (tester) async {
+      final api = _FakeApiClient()
+        ..stored = const UserPreferences(home: _home, preferences: _taste);
+      await _pump(tester, BestDateScreen(apiClient: api));
+
+      expect(find.text('Edit preferences'), findsNothing);
+      expect(find.text('Set my preferences'), findsNothing);
+      final sliders = tester.widgetList<SpectrumSlider>(find.byType(SpectrumSlider)).toList();
+      expect(sliders.map((s) => s.value), [0.4, 0.0, 0.0, 0.9, 0.0]);
+    });
+
+    testWidgets('tweaking a slider is used for this search only, never saved', (tester) async {
+      final api = _FakeApiClient()
+        ..stored = const UserPreferences(home: _home, preferences: _taste);
+      await _pump(tester, BestDateScreen(apiClient: api));
+
+      // Turn "Red skies" (the fifth slider) up to its maximum.
+      final redSkies = find.byType(SpectrumSlider).at(4);
+      await tester.drag(redSkies, const Offset(2000, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Find my best day'));
+      await tester.pumpAndSettle();
+
+      expect(api.requests.single.preferences.redSky, 1.0);
+      expect(api.requests.single.preferences.goldenOrange, 0.9);
+      expect(api.saved, isEmpty);
+    });
+
+    testWidgets('a search can start from nothing by turning a slider up', (tester) async {
+      final api = _FakeApiClient()..stored = const UserPreferences(home: _home);
+      await _pump(tester, BestDateScreen(apiClient: api));
+
+      await tester.drag(find.byType(SpectrumSlider).first, const Offset(2000, 0));
+      await tester.pumpAndSettle();
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
     });
 
     testWidgets('shows the saved taste and sends it with the saved location', (tester) async {
@@ -152,12 +200,9 @@ void main() {
         );
       await _pump(tester, BestDateScreen(apiClient: api));
 
-      expect(find.text('Golden / orange 90%'), findsOneWidget);
-      expect(find.text('Clear sky 40%'), findsOneWidget);
-      expect(find.text('Edit preferences'), findsOneWidget);
       expect(find.text('Brooklyn Bridge Park'), findsOneWidget);
 
-      await tester.tap(find.text('Continue with saved preferences'));
+      await tester.tap(find.text('Find my best day'));
       await tester.pumpAndSettle();
 
       final request = api.requests.single;
@@ -175,7 +220,7 @@ void main() {
         ..bestError = ApiException('Weather data is temporarily unavailable.');
       await _pump(tester, BestDateScreen(apiClient: api));
 
-      await tester.tap(find.text('Continue with saved preferences'));
+      await tester.tap(find.text('Find my best day'));
       await tester.pumpAndSettle();
 
       expect(find.text('Weather data is temporarily unavailable.'), findsOneWidget);

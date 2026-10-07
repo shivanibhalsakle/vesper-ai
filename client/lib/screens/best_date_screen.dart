@@ -9,12 +9,12 @@ import '../services/api_client.dart';
 import '../theme/flows.dart';
 import '../widgets/flow_header.dart';
 import '../widgets/location_picker.dart';
+import '../widgets/preference_sliders.dart';
 import '../widgets/sky_loader.dart';
 import 'best_date_result_screen.dart';
-import 'settings_screen.dart';
 
-/// Flow 1: confirm (or edit) your taste and where you'll be, then get the
-/// best sky date in the coming week.
+/// Flow 1: confirm (or tweak, for this search only) your taste and where
+/// you'll be, then get the best sky date in the coming week.
 class BestDateScreen extends StatefulWidget {
   final ApiClient? apiClient;
 
@@ -33,6 +33,9 @@ class _BestDateScreenState extends State<BestDateScreen> {
   String? _searchError;
 
   UserPreferences _saved = const UserPreferences();
+  // The taste used for this search. It starts as the saved one and can be
+  // adjusted here, but is never written back: saved preferences stay as they are.
+  PreferenceProfile _taste = const PreferenceProfile();
   PickedLocation? _location;
   SunEvent _event = SunEvent.sunset;
 
@@ -52,6 +55,7 @@ class _BestDateScreenState extends State<BestDateScreen> {
       if (!mounted) return;
       setState(() {
         _saved = saved ?? const UserPreferences();
+        _taste = _saved.preferences;
         // Keep a location the user already picked here; otherwise start from
         // their saved home spot.
         if (initial || _location == null) _location = _saved.home;
@@ -63,13 +67,6 @@ class _BestDateScreenState extends State<BestDateScreen> {
     } finally {
       if (mounted) setState(() => _loadingSaved = false);
     }
-  }
-
-  Future<void> _editPreferences() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => SettingsScreen(apiClient: _apiClient)),
-    );
-    if (mounted) await _loadSaved();
   }
 
   Future<void> _findDate() async {
@@ -87,14 +84,14 @@ class _BestDateScreenState extends State<BestDateScreen> {
         startDate: DateTime.now(),
         radiusKm: _saved.radiusKm,
         placeTypes: _saved.placeTypes,
-        preferences: _saved.preferences,
+        preferences: _taste,
       ));
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => BestDateResultScreen(
             response: response,
-            preferences: _saved.preferences,
+            preferences: _taste,
             location: location,
             apiClient: _apiClient,
           ),
@@ -143,7 +140,7 @@ class _BestDateScreenState extends State<BestDateScreen> {
 
   Widget _content(BuildContext context) {
     final theme = Theme.of(context);
-    final hasTaste = _saved.preferences.hasSkyPreference;
+    final hasTaste = _taste.hasSkyPreference;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -151,26 +148,19 @@ class _BestDateScreenState extends State<BestDateScreen> {
         FlowHeader(flow: Flows.bestDate),
         const SizedBox(height: 24),
         Text('Your sky taste', style: theme.textTheme.titleLarge),
+        const SizedBox(height: 4),
+        Text(
+          _saved.preferences.hasSkyPreference
+              ? 'Start from your saved taste and tweak it for this search. '
+                  'Your saved preferences stay as they are.'
+              : 'Tell us what you love and we will find the day that matches. '
+                  'This is just for this search.',
+          style: theme.textTheme.bodySmall,
+        ),
         const SizedBox(height: 8),
-        if (hasTaste) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              for (final entry in _skyTasteEntries(_saved.preferences))
-                Chip(label: Text('${entry.$1} ${(entry.$2 * 100).round()}%')),
-            ],
-          ),
-        ] else
-          const Text(
-            "You haven't set any sky preferences yet. Tell us what you love "
-            'and we can find the day that matches.',
-          ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _searching ? null : _editPreferences,
-          icon: const Icon(Icons.tune),
-          label: Text(hasTaste ? 'Edit preferences' : 'Set my preferences'),
+        PreferenceSliders(
+          value: _taste,
+          onChanged: (taste) => setState(() => _taste = taste),
         ),
         const Divider(height: 40),
         Text('Where will you be?', style: theme.textTheme.titleLarge),
@@ -199,7 +189,7 @@ class _BestDateScreenState extends State<BestDateScreen> {
         const SizedBox(height: 24),
         FilledButton(
           onPressed: _location == null || !hasTaste || _searching ? null : _findDate,
-          child: const Text('Continue with saved preferences'),
+          child: const Text('Find my best day'),
         ),
         if (_searchError != null)
           Padding(
@@ -209,13 +199,4 @@ class _BestDateScreenState extends State<BestDateScreen> {
       ],
     );
   }
-
-  // (label, weight) for each sky slider the user has turned up.
-  List<(String, double)> _skyTasteEntries(PreferenceProfile p) => [
-        ('Clear sky', p.clearSky),
-        ('Dramatic clouds', p.dramaticClouds),
-        ('Pink / purple', p.pinkPurple),
-        ('Golden / orange', p.goldenOrange),
-        ('Red skies', p.redSky),
-      ].where((entry) => entry.$2 > 0).toList();
 }

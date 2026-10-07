@@ -81,6 +81,26 @@ void main() {
     expect(find.textContaining('shows how much you want'), findsOneWidget);
   });
 
+  testWidgets('Tapping the sun says "Your preference"', (tester) async {
+    await _pump(
+      tester,
+      SkyDetailView(sky: _sky(), preferences: const PreferenceProfile(goldenOrange: 0.9)),
+    );
+    await tester.pumpAndSettle(); // the sun pops in once its bar has swept across
+
+    expect(find.text('Your preference'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('preference-marker')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Your preference'), findsOneWidget);
+
+    // ...and it goes away again by itself.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(find.text('Your preference'), findsNothing);
+  });
+
   testWidgets('No markers or legend without preferences', (tester) async {
     await _pump(tester, SkyDetailView(sky: _sky()));
 

@@ -192,7 +192,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Continue with saved preferences'));
+      await tester.tap(find.text('Find my best day'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -219,7 +219,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Continue with saved preferences'));
+      await tester.tap(find.text('Find my best day'));
       await tester.pump();
       expect(find.byType(SkyLoader), findsOneWidget);
 
@@ -228,7 +228,7 @@ void main() {
 
       expect(find.byType(SkyLoader), findsNothing);
       expect(find.text('Weather data is temporarily unavailable.'), findsOneWidget);
-      expect(find.text('Continue with saved preferences'), findsOneWidget);
+      expect(find.text('Find my best day'), findsOneWidget);
     });
 
     testWidgets('todays sky: loader under the form until the sky arrives', (tester) async {

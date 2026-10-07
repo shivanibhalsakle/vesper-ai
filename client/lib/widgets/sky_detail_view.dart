@@ -246,21 +246,28 @@ class LevelBar extends StatelessWidget {
   }
 }
 
+/// The sun on a bar. Tapping it explains what it is: people try to touch it
+/// (or drag it) to find out.
 class _SunMarker extends StatelessWidget {
   const _SunMarker({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: LevelBar._sunSize,
-      height: LevelBar._sunSize,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.beigeBorder),
+    return Tooltip(
+      message: 'Your preference',
+      triggerMode: TooltipTriggerMode.tap,
+      showDuration: const Duration(seconds: 2),
+      child: Container(
+        width: LevelBar._sunSize,
+        height: LevelBar._sunSize,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.beigeBorder),
+        ),
+        child: const Icon(Icons.wb_sunny_rounded, size: 17, color: AppColors.sun),
       ),
-      child: const Icon(Icons.wb_sunny_rounded, size: 17, color: AppColors.sun),
     );
   }
 }
