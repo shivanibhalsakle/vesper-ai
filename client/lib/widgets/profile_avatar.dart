@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/avatars.dart';
 
-/// The user's picture: a photo if there is one, else their chosen avatar,
-/// else the first letter of their name.
+/// The user's picture: a photo if there is one, else their chosen illustrated
+/// avatar, else the first letter of their name.
 class ProfileAvatar extends StatelessWidget {
   final double radius;
   final ImageProvider? image;
@@ -26,12 +26,20 @@ class ProfileAvatar extends StatelessWidget {
       return CircleAvatar(radius: radius, backgroundImage: image);
     }
 
-    final avatar = avatarId == null ? null : kAvatars[avatarId];
+    final avatar = avatarById(avatarId);
     if (avatar != null) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: avatar.color.withValues(alpha: 0.2),
-        child: Icon(avatar.icon, size: radius, color: avatar.color),
+      return SizedBox.square(
+        dimension: radius * 2,
+        // The artwork is already a circle on a transparent square.
+        child: Image.asset(
+          avatar.asset,
+          fit: BoxFit.cover,
+          semanticLabel: avatar.label,
+          // Decode near the size shown (and sharp on dense screens) rather
+          // than at full resolution.
+          cacheWidth: (radius * 2 * MediaQuery.devicePixelRatioOf(context)).round(),
+          gaplessPlayback: true,
+        ),
       );
     }
 

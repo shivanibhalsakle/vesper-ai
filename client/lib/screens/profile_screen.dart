@@ -2,13 +2,13 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../models/avatars.dart';
 import '../models/user_profile.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/profile_photo_service.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/star_rating.dart';
+import 'avatar_picker_screen.dart';
 import 'settings_screen.dart';
 
 // Same shape the backend accepts: digits with the usual separators.
@@ -140,8 +140,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _chooseAvatar(String id) {
-    Navigator.of(context).pop();
+  Future<void> _openAvatarPicker() async {
+    Navigator.of(context).pop(); // close the picture sheet
+    final id = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const AvatarPickerScreen()),
+    );
+    if (id == null || !mounted) return;
     setState(() {
       _avatarId = id;
       _newPhoto = null;
@@ -160,6 +164,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  bool get _hasPicture => _newPhoto != null || _savedPhotoPath != null || _avatarId != null;
+
   void _showPictureSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -173,31 +179,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Upload a photo'),
+                title: const Text('Upload from device'),
                 onTap: _pickPhoto,
               ),
               ListTile(
-                leading: const Icon(Icons.hide_image_outlined),
-                title: const Text('Remove picture'),
-                onTap: _clearPicture,
+                leading: const Icon(Icons.auto_awesome_outlined),
+                title: const Text('Choose an avatar'),
+                subtitle: const Text('Illustrated, in three collections'),
+                onTap: _openAvatarPicker,
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Text('Or choose an avatar'),
-              ),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (final id in kAvatars.keys)
-                    InkWell(
-                      key: Key('avatar-$id'),
-                      customBorder: const CircleBorder(),
-                      onTap: () => _chooseAvatar(id),
-                      child: ProfileAvatar(radius: 26, avatarId: id),
-                    ),
-                ],
-              ),
+              if (_hasPicture)
+                ListTile(
+                  leading: const Icon(Icons.hide_image_outlined),
+                  title: const Text('Remove picture'),
+                  onTap: _clearPicture,
+                ),
             ],
           ),
         ),

@@ -90,7 +90,7 @@ void main() {
   group('ProfileScreen', () {
     testWidgets('loads the saved profile and shows the account email', (tester) async {
       final api = _FakeApiClient(
-        stored: const UserProfile(displayName: 'Shivani', phone: '+1 555 010 2030', avatarId: 'sun'),
+        stored: const UserProfile(displayName: 'Shivani', phone: '+1 555 010 2030', avatarId: 'wilderness_wolf'),
       );
       await _pump(tester, ProfileScreen(account: _account, apiClient: api, photos: _FakePhotos()));
 
@@ -157,12 +157,16 @@ void main() {
 
       await tester.tap(find.byTooltip('Change picture'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('avatar-moon')));
+      await tester.tap(find.text('Choose an avatar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('avatar-wilderness_wolf')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirm-avatar')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Save profile'));
       await tester.pumpAndSettle();
 
-      expect(api.saved.single.avatarId, 'moon');
+      expect(api.saved.single.avatarId, 'wilderness_wolf');
       expect(api.saved.single.photoStoragePath, isNull);
     });
 
@@ -175,7 +179,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Change picture'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Upload a photo'));
+      await tester.tap(find.text('Upload from device'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Save profile'));
       await tester.pumpAndSettle();
@@ -197,7 +201,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Change picture'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Upload a photo'));
+      await tester.tap(find.text('Upload from device'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Save profile'));
       await tester.pumpAndSettle();

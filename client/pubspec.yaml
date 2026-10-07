@@ -65,6 +65,13 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Illustrated profile avatars (generated from the artwork in /avatars by
+  # tool/build_avatars.py).
+  assets:
+    - assets/avatars/wanderlust/
+    - assets/avatars/wilderness/
+    - assets/avatars/moods/
+
   # Fonts are bundled (not fetched at runtime): instant first paint, works
   # offline, and the app never calls Google to render text. Both are SIL OFL
   # fonts; their licences sit next to the files in assets/fonts/.
