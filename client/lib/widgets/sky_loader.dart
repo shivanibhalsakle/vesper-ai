@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/haptics.dart';
+import 'sparkle_burst.dart';
 
 const _tips = [
   'Golden hour starts about an hour before sunset',
@@ -100,6 +102,7 @@ class _SkyLoaderState extends State<SkyLoader> with TickerProviderStateMixin {
 
   void _tapSun() {
     if (_reduced) return;
+    AppHaptics.tap();
     _pop.forward(from: 0);
   }
 
@@ -221,7 +224,7 @@ class _SkyLoaderState extends State<SkyLoader> with TickerProviderStateMixin {
                     child: IgnorePointer(
                       child: CustomPaint(
                         key: const Key('sky-loader-sparkles'),
-                        painter: _SparklePainter(origin: pos, t: _pop.value),
+                        painter: SparklePainter(origin: pos, t: _pop.value),
                       ),
                     ),
                   ),
@@ -368,31 +371,4 @@ class _SkyLoaderState extends State<SkyLoader> with TickerProviderStateMixin {
       ),
     );
   }
-}
-
-class _SparklePainter extends CustomPainter {
-  final Offset origin;
-  final double t;
-
-  _SparklePainter({required this.origin, required this.t});
-
-  static const _count = 10;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final eased = Curves.easeOut.transform(t);
-    for (var i = 0; i < _count; i++) {
-      final angle = i / _count * 2 * math.pi;
-      final distance = 30 + 40 * eased;
-      final at = origin + Offset(math.cos(angle), math.sin(angle)) * distance;
-      canvas.drawCircle(
-        at,
-        2 + 4 * (1 - t),
-        Paint()..color = Colors.white.withValues(alpha: (1 - t).clamp(0.0, 1.0)),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SparklePainter old) => old.t != t || old.origin != origin;
 }

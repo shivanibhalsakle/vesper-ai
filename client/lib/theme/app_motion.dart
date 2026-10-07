@@ -35,6 +35,12 @@ class AppMotion {
 
   static const curve = Curves.easeOutCubic;
 
+  /// Whether endless background motion (drifting clouds, a bobbing sun) is
+  /// allowed. Always on in the app; the test setup turns it off because a
+  /// never-ending animation stops `pumpAndSettle` from ever settling, and a
+  /// test that wants to see it switches it back on.
+  static bool ambientLoops = true;
+
   /// Whether the user asked the system for less motion.
   static bool reduced(BuildContext context) => MediaQuery.disableAnimationsOf(context);
 }

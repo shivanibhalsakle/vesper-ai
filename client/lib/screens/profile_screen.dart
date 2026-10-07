@@ -8,6 +8,7 @@ import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/profile_photo_service.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/star_rating.dart';
 import 'settings_screen.dart';
 
 // Same shape the backend accepts: digits with the usual separators.
@@ -416,26 +417,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: Text('Enjoying Vesper?', style: theme.textTheme.titleMedium),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var star = 1; star <= 5; star++)
-                IconButton(
-                  key: Key('rate-$star'),
-                  tooltip: 'Rate $star ${star == 1 ? 'star' : 'stars'}',
-                  icon: Icon(
-                    star <= _rating ? Icons.star : Icons.star_border,
-                    color: theme.colorScheme.primary,
-                    size: 32,
-                  ),
-                  onPressed: () {
-                    setState(() => _rating = star);
-                    // Placeholder: once the app is on the Play Store this
-                    // opens the real in-app review.
-                    _toast('Thanks! Rating will connect to the Play Store at launch.');
-                  },
-                ),
-            ],
+          StarRating(
+            value: _rating,
+            onChanged: (star) {
+              setState(() => _rating = star);
+              // Placeholder: once the app is on the Play Store this opens
+              // the real in-app review.
+              _toast('Thanks! Rating will connect to the Play Store at launch.');
+            },
           ),
         ],
       ],

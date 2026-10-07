@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_motion.dart';
+import '../utils/haptics.dart';
 import 'animated_reveal.dart';
 
 const _monthNames = [
@@ -133,7 +134,10 @@ class _SavedDatesCalendarState extends State<SavedDatesCalendar> {
     return InkWell(
       key: calendarDayKey(day),
       customBorder: const CircleBorder(),
-      onTap: () => widget.onSelected(isSelected ? null : day),
+      onTap: () {
+        AppHaptics.select();
+        widget.onSelected(isSelected ? null : day);
+      },
       child: Stack(
         alignment: Alignment.center,
         clipBehavior: Clip.none,
