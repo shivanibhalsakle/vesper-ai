@@ -125,6 +125,16 @@ def test_session_ranks_by_preference_match_not_distance(monkeypatch):
     assert names[-1] == "Overcast Beach"  # closest, but worst sky match
 
 
+def test_session_results_carry_coordinates_for_opening_in_maps(monkeypatch):
+    _patch_network(monkeypatch)
+
+    response = client.post("/session", json=_request_body())
+
+    by_name = {r["name"]: r for r in response.json()["recommendations"]}
+    assert by_name["Dramatic Point"]["lat"] == 40.76
+    assert by_name["Dramatic Point"]["lon"] == -73.97
+
+
 def test_session_response_excludes_internal_cloud_effect(monkeypatch):
     _patch_network(monkeypatch)
 

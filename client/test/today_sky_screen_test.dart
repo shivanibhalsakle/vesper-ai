@@ -10,6 +10,7 @@ import 'package:vesper/models/sky_forecast.dart';
 import 'package:vesper/models/user_preferences.dart';
 import 'package:vesper/screens/today_sky_screen.dart';
 import 'package:vesper/services/api_client.dart';
+import 'package:vesper/utils/maps.dart';
 
 const _sky = SkyForecast(
   event: SunEvent.sunset,
@@ -39,6 +40,8 @@ const _spot = LocationResult(
   locationId: 'osm-1',
   name: 'Brooklyn Bridge Park',
   type: LocationType.waterfront,
+  lat: 40.7003,
+  lon: -73.9967,
   distanceKm: 0.8,
   eventTime: '2026-10-05T18:12:00-04:00',
   recommendedArrivalOffsetMinutes: -20,
@@ -143,6 +146,33 @@ void main() {
 
     expect(find.text('Expected sky'), findsOneWidget);
     expect(find.text('Place data is temporarily unavailable.'), findsOneWidget);
+  });
+
+  testWidgets('Tapping a suggested spot asks before opening Google Maps', (tester) async {
+    final opened = <Uri>[];
+    final original = MapsLauncher.opener;
+    MapsLauncher.opener = (uri) async {
+      opened.add(uri);
+      return true;
+    };
+    addTearDown(() => MapsLauncher.opener = original);
+
+    final api = _FakeApiClient()..stored = const UserPreferences(home: _home);
+    await _pump(tester, api);
+    await tester.tap(find.text("Show today's sky"));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('spot-osm-1')));
+    await tester.tap(find.byKey(const Key('spot-osm-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open in Google Maps?'), findsOneWidget);
+    expect(opened, isEmpty);
+
+    await tester.tap(find.byKey(const Key('open-in-maps-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(opened.single, MapsLauncher.uriFor(40.7003, -73.9967));
   });
 
   testWidgets('A sky failure shows the error', (tester) async {

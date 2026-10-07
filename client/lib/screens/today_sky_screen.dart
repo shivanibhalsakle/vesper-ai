@@ -8,6 +8,7 @@ import '../models/session_response.dart';
 import '../models/sky_forecast.dart';
 import '../services/api_client.dart';
 import '../utils/format.dart';
+import '../utils/maps.dart';
 import '../widgets/location_picker.dart';
 import '../theme/flows.dart';
 import '../widgets/flow_header.dart';
@@ -239,43 +240,64 @@ class _SpotCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(child: Text('$rank')),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(spot.name, style: theme.textTheme.titleMedium),
-                      Text('${spot.type.label} · ${spot.distanceKm.toStringAsFixed(1)} km away'),
-                    ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: Key('spot-${spot.locationId}'),
+        onTap: () => confirmAndOpenInMaps(
+          context,
+          name: spot.name,
+          lat: spot.lat,
+          lon: spot.lon,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                    CircleAvatar(child: Text('$rank')),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(spot.name, style: theme.textTheme.titleMedium),
+                        Text('${spot.type.label} · ${spot.distanceKm.toStringAsFixed(1)} km away'),
+                      ],
+                    ),
                   ),
+                  if (showMatch)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(formatPercent(spot.preferenceMatchScore),
+                            style: theme.textTheme.titleMedium),
+                        const Text('match'),
+                      ],
+                    ),
+                ],
+              ),
+              if (spot.explanation != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  spot.explanation!,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
                 ),
-                if (showMatch)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(formatPercent(spot.preferenceMatchScore),
-                          style: theme.textTheme.titleMedium),
-                      const Text('match'),
-                    ],
-                  ),
               ],
-            ),
-            if (spot.explanation != null) ...[
               const SizedBox(height: 12),
-              Text(
-                spot.explanation!,
-                style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+              Row(
+                children: [
+                  Icon(Icons.map_outlined, size: 18, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Open in Google Maps',
+                    style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary),
+                  ),
+                ],
               ),
             ],
-          ],
+          ),
         ),
       ),
     );

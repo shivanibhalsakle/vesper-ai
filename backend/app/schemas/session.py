@@ -38,6 +38,8 @@ class LocationResult(BaseModel):
     location_id: str
     name: str
     type: LocationType
+    lat: float
+    lon: float
     distance_km: float
 
     event_time: datetime

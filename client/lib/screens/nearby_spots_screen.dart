@@ -5,6 +5,7 @@ import '../models/location_type.dart';
 import '../models/nearby_spot.dart';
 import '../services/api_client.dart';
 import '../theme/flows.dart';
+import '../utils/maps.dart';
 import '../widgets/flow_header.dart';
 import '../widgets/location_picker.dart';
 import '../widgets/rise_in.dart';
@@ -156,9 +157,17 @@ class _SpotTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        key: Key('spot-${spot.id}'),
         leading: Icon(_icon),
         title: Text(spot.name),
         subtitle: Text('${spot.type.label} · ${spot.distanceKm.toStringAsFixed(1)} km away'),
+        trailing: Icon(Icons.map_outlined, color: Theme.of(context).colorScheme.primary),
+        onTap: () => confirmAndOpenInMaps(
+          context,
+          name: spot.name,
+          lat: spot.lat,
+          lon: spot.lon,
+        ),
       ),
     );
   }

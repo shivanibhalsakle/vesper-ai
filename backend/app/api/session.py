@@ -79,6 +79,8 @@ def create_session(request: SessionRequest) -> SessionResponse:
                 location_id=candidate.id,
                 name=candidate.name,
                 type=candidate.type,
+                lat=candidate.lat,
+                lon=candidate.lon,
                 distance_km=candidate.distance_km,
                 event_time=event_time,
                 recommended_arrival_offset_minutes=score.recommended_arrival_offset_minutes,

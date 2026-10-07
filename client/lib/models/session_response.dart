@@ -36,6 +36,8 @@ class LocationResult {
   final String locationId;
   final String name;
   final LocationType type;
+  final double lat;
+  final double lon;
   final double distanceKm;
 
   // Kept as raw ISO strings (not DateTime) because the backend returns each
@@ -59,6 +61,8 @@ class LocationResult {
     required this.locationId,
     required this.name,
     required this.type,
+    required this.lat,
+    required this.lon,
     required this.distanceKm,
     required this.eventTime,
     required this.recommendedArrivalOffsetMinutes,
@@ -76,6 +80,8 @@ class LocationResult {
         locationId: json['location_id'] as String,
         name: json['name'] as String,
         type: LocationType.fromApiValue(json['type'] as String),
+        lat: (json['lat'] as num).toDouble(),
+        lon: (json['lon'] as num).toDouble(),
         distanceKm: (json['distance_km'] as num).toDouble(),
         eventTime: json['event_time'] as String,
         recommendedArrivalOffsetMinutes: json['recommended_arrival_offset_minutes'] as int,
