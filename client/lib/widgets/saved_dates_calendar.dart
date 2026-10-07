@@ -167,53 +167,58 @@ class _SavedDatesCalendarState extends State<SavedDatesCalendar> {
                 ),
               ),
             ),
-          AnimatedContainer(
-            duration: quick,
-            margin: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isSelected ? scheme.primary : Colors.transparent,
-              border: isToday && !isSelected
-                  ? Border.all(color: scheme.primary)
-                  : Border.all(color: Colors.transparent),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedDefaultTextStyle(
-                  duration: quick,
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                        color: isSelected ? scheme.onPrimary : null,
-                      ),
-                  child: Text('${day.day}'),
-                ),
-                SizedBox(
-                  height: 6,
-                  child: isMarked
-                      ? AnimatedReveal(
-                          // Saved dots pop in, a little out of step with each
-                          // other so the month sparkles rather than blinks.
-                          delay: Duration(milliseconds: 100 + (day.day % 6) * 40),
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeOutBack,
-                          builder: (context, t) => Transform.scale(
-                            scale: t.clamp(0.0, 1.3),
-                            child: Container(
-                              key: const Key('saved-dot'),
-                              width: 5,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isSelected
-                                    ? scheme.onPrimary
-                                    : (widget.dotColors[day] ?? scheme.primary),
+          // Fill the (square) cell: a Stack hands its children loose
+          // constraints, which would shrink the circle to just the digits.
+          Positioned.fill(
+            child: AnimatedContainer(
+              key: Key('day-circle-${day.day}'),
+              duration: quick,
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? scheme.primary : Colors.transparent,
+                border: isToday && !isSelected
+                    ? Border.all(color: scheme.primary)
+                    : Border.all(color: Colors.transparent),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedDefaultTextStyle(
+                    duration: quick,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                          color: isSelected ? scheme.onPrimary : null,
+                        ),
+                    child: Text('${day.day}'),
+                  ),
+                  SizedBox(
+                    height: 6,
+                    child: isMarked
+                        ? AnimatedReveal(
+                            // Saved dots pop in, a little out of step with each
+                            // other so the month sparkles rather than blinks.
+                            delay: Duration(milliseconds: 100 + (day.day % 6) * 40),
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.easeOutBack,
+                            builder: (context, t) => Transform.scale(
+                              scale: t.clamp(0.0, 1.3),
+                              child: Container(
+                                key: const Key('saved-dot'),
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected
+                                      ? scheme.onPrimary
+                                      : (widget.dotColors[day] ?? scheme.primary),
+                                ),
                               ),
                             ),
-                          ),
-                        )
-                      : null,
-                ),
-              ],
+                          )
+                        : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

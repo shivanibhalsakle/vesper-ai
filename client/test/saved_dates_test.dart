@@ -242,6 +242,36 @@ void main() {
   });
 
   group('SavedDatesCalendar', () {
+    testWidgets('the selection circle is a full circle covering the whole number',
+        (tester) async {
+      for (final day in [DateTime(2026, 10, 7), DateTime(2026, 10, 28)]) {
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: SavedDatesCalendar(
+              today: _today,
+              // Saved days carry a dot under the number; cover that case too.
+              markedDates: {DateTime(2026, 10, 28)},
+              selected: day,
+              onSelected: (_) {},
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        final circle = tester.getRect(find.byKey(Key('day-circle-${day.day}')));
+        final number = tester.getRect(find.descendant(
+          of: find.byKey(calendarDayKey(day)),
+          matching: find.text('${day.day}'),
+        ));
+
+        expect(circle.width, closeTo(circle.height, 0.01), reason: 'a circle, not an oval');
+        expect(circle.width, greaterThan(number.width + 12));
+        expect(circle.height, greaterThan(number.height));
+        expect(circle.contains(number.topLeft), isTrue);
+        expect(circle.contains(number.bottomRight), isTrue);
+      }
+    });
+
     testWidgets('marks saved days and navigates months', (tester) async {
       DateTime? picked;
       await tester.pumpWidget(MaterialApp(
