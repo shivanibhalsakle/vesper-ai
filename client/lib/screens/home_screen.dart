@@ -23,7 +23,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vesper'),
+        title: Text(
+          'Vesper',
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(fontSize: 32),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),

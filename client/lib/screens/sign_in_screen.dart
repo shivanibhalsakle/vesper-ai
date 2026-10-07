@@ -38,7 +38,7 @@ class _SignInScreenState extends State<SignInScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Vesper', style: Theme.of(context).textTheme.headlineMedium),
+              Text('Vesper', style: Theme.of(context).textTheme.displayMedium),
               const SizedBox(height: 8),
               const Text(
                 'Sign in to save your sky preferences and get notified of great matches.',

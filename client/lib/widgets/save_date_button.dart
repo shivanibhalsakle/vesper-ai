@@ -87,6 +87,14 @@ class _SaveDateButtonState extends State<SaveDateButton> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton.tonalIcon(
+          // The quieter sibling of the main button: blush fill, brown text
+          // (tonal buttons would otherwise inherit the solid brown).
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+            disabledBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            disabledForegroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+          ),
           onPressed: _saving || _saved ? null : _save,
           icon: _saving
               ? const SizedBox(

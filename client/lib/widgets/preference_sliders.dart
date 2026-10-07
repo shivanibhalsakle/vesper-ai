@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/preference_profile.dart';
+import 'spectrum_slider.dart';
 
 /// The nine "how much do you love this?" sliders, shared by Settings and
 /// anywhere else a sky preference is edited or compared.
@@ -15,14 +16,7 @@ class PreferenceSliders extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label),
-        Slider(
-          value: current,
-          min: 0,
-          max: 1,
-          divisions: 10,
-          label: current.toStringAsFixed(1),
-          onChanged: onChanged,
-        ),
+        SpectrumSlider(value: current, onChanged: onChanged),
       ],
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/preference_profile.dart';
 import '../models/sky_forecast.dart';
+import '../theme/app_theme.dart';
 import '../utils/format.dart';
 
 /// The predicted sky for one place and day: timing, conditions and the
@@ -30,13 +31,16 @@ class SkyDetailView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        // A Wrap, not a Row: the big score, its caption and the confidence
+        // chip don't all fit on one line on a narrow phone.
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             if (score != null) ...[
               Text(formatPercent(score), style: theme.textTheme.displaySmall),
-              const SizedBox(width: 8),
               const Text('match with\nyour taste'),
-              const Spacer(),
             ],
             Chip(label: Text('${sky.confidence.label} · $_leadText')),
           ],
@@ -83,7 +87,7 @@ class SkyDetailView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 2, bottom: 4),
             child: Text(
-              'The marker (│) shows how much you want each one.',
+              'The sun shows how much you want each one.',
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -116,14 +120,18 @@ class SkyDetailView extends StatelessWidget {
   }
 }
 
-/// A read-only, slider-styled bar: filled to [level], with an optional
-/// marker at [wanted].
+/// A read-only bar filled with the dawn-to-dusk spectrum up to [level]. When
+/// [wanted] is set, a small sun sits at that position: how much the user
+/// asked for, so forecast and taste can be compared at a glance.
 class LevelBar extends StatelessWidget {
   final String label;
   final double level;
   final double? wanted;
 
   const LevelBar({super.key, required this.label, required this.level, this.wanted});
+
+  static const _barHeight = 12.0;
+  static const _sunSize = 24.0;
 
   @override
   Widget build(BuildContext context) {
@@ -141,48 +149,52 @@ class LevelBar extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           SizedBox(
-            height: 14,
+            height: _sunSize,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
+                const barTop = (_sunSize - _barHeight) / 2;
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Positioned.fill(
-                      top: 4,
-                      bottom: 4,
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: barTop,
+                      height: _barHeight,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(_barHeight / 2),
                         ),
                       ),
                     ),
                     Positioned(
                       left: 0,
-                      top: 4,
-                      bottom: 4,
+                      top: barTop,
+                      height: _barHeight,
                       width: width * level.clamp(0.0, 1.0),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          borderRadius: BorderRadius.circular(4),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(_barHeight / 2),
+                        // The gradient spans the whole bar and is revealed up
+                        // to the level, so a colour always means the same
+                        // amount (not "squeezed" into short bars).
+                        child: OverflowBox(
+                          alignment: Alignment.centerLeft,
+                          minWidth: width,
+                          maxWidth: width,
+                          child: const DecoratedBox(
+                            decoration: BoxDecoration(gradient: AppColors.spectrumGradient),
+                          ),
                         ),
                       ),
                     ),
                     if (marker != null)
                       Positioned(
-                        left: (width * marker.clamp(0.0, 1.0)) - 1.5,
+                        left: (width * marker.clamp(0.0, 1.0) - _sunSize / 2)
+                            .clamp(-2.0, width - _sunSize + 2),
                         top: 0,
-                        bottom: 0,
-                        width: 3,
-                        child: DecoratedBox(
-                          key: const Key('preference-marker'),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
+                        child: const _SunMarker(key: Key('preference-marker')),
                       ),
                   ],
                 );
@@ -191,6 +203,25 @@ class LevelBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SunMarker extends StatelessWidget {
+  const _SunMarker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: LevelBar._sunSize,
+      height: LevelBar._sunSize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.beigeBorder),
+      ),
+      child: const Icon(Icons.wb_sunny_rounded, size: 17, color: AppColors.sun),
     );
   }
 }
