@@ -4,10 +4,6 @@ class PreferenceProfile {
   final double pinkPurple;
   final double goldenOrange;
   final double redSky;
-  final double silhouettes;
-  final double waterReflection;
-  final double cityScape;
-  final double unobstructedHorizon;
 
   const PreferenceProfile({
     this.clearSky = 0.0,
@@ -15,14 +11,9 @@ class PreferenceProfile {
     this.pinkPurple = 0.0,
     this.goldenOrange = 0.0,
     this.redSky = 0.0,
-    this.silhouettes = 0.0,
-    this.waterReflection = 0.0,
-    this.cityScape = 0.0,
-    this.unobstructedHorizon = 0.0,
   });
 
-  /// Whether any of the five sky-condition sliders is set. Composition
-  /// sliders (silhouettes etc.) don't affect the forecast match score.
+  /// Whether any of the sky-condition sliders is set.
   bool get hasSkyPreference =>
       clearSky + dramaticClouds + pinkPurple + goldenOrange + redSky > 0;
 
@@ -32,10 +23,6 @@ class PreferenceProfile {
     double? pinkPurple,
     double? goldenOrange,
     double? redSky,
-    double? silhouettes,
-    double? waterReflection,
-    double? cityScape,
-    double? unobstructedHorizon,
   }) {
     return PreferenceProfile(
       clearSky: clearSky ?? this.clearSky,
@@ -43,13 +30,11 @@ class PreferenceProfile {
       pinkPurple: pinkPurple ?? this.pinkPurple,
       goldenOrange: goldenOrange ?? this.goldenOrange,
       redSky: redSky ?? this.redSky,
-      silhouettes: silhouettes ?? this.silhouettes,
-      waterReflection: waterReflection ?? this.waterReflection,
-      cityScape: cityScape ?? this.cityScape,
-      unobstructedHorizon: unobstructedHorizon ?? this.unobstructedHorizon,
     );
   }
 
+  /// Keys the backend still sends for the retired location-composition
+  /// sliders are simply ignored.
   factory PreferenceProfile.fromJson(Map<String, dynamic> json) {
     double weight(String key) => (json[key] as num?)?.toDouble() ?? 0.0;
     return PreferenceProfile(
@@ -58,10 +43,6 @@ class PreferenceProfile {
       pinkPurple: weight('pink_purple'),
       goldenOrange: weight('golden_orange'),
       redSky: weight('red_sky'),
-      silhouettes: weight('silhouettes'),
-      waterReflection: weight('water_reflection'),
-      cityScape: weight('city_skyline'),
-      unobstructedHorizon: weight('unobstructed_horizon'),
     );
   }
 
@@ -71,9 +52,5 @@ class PreferenceProfile {
         'pink_purple': pinkPurple,
         'golden_orange': goldenOrange,
         'red_sky': redSky,
-        'silhouettes': silhouettes,
-        'water_reflection': waterReflection,
-        'city_skyline': cityScape,
-        'unobstructed_horizon': unobstructedHorizon,
       };
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/preference_profile.dart';
 import 'spectrum_slider.dart';
 
-/// The nine "how much do you love this?" sliders, shared by Settings and
+/// The five "how much do you love this?" sky sliders, shared by Settings and
 /// anywhere else a sky preference is edited or compared.
 class PreferenceSliders extends StatelessWidget {
   final PreferenceProfile value;
@@ -35,20 +35,6 @@ class PreferenceSliders extends StatelessWidget {
         _slider('Golden / orange light', value.goldenOrange,
             (v) => onChanged(value.copyWith(goldenOrange: v))),
         _slider('Red skies', value.redSky, (v) => onChanged(value.copyWith(redSky: v))),
-        const Divider(height: 32),
-        Text('Location composition', style: Theme.of(context).textTheme.titleMedium),
-        Text(
-          'What you like to see around you at the viewing spot.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        _slider('Silhouettes', value.silhouettes,
-            (v) => onChanged(value.copyWith(silhouettes: v))),
-        _slider('Water reflection', value.waterReflection,
-            (v) => onChanged(value.copyWith(waterReflection: v))),
-        _slider('City skyline', value.cityScape,
-            (v) => onChanged(value.copyWith(cityScape: v))),
-        _slider('Unobstructed horizon', value.unobstructedHorizon,
-            (v) => onChanged(value.copyWith(unobstructedHorizon: v))),
       ],
     );
   }

@@ -13,7 +13,7 @@ void main() {
       radiusKm: 25,
       placeTypes: [LocationType.park, LocationType.elevatedViewpoint],
       event: SunEvent.sunrise,
-      preferences: PreferenceProfile(pinkPurple: 0.7, cityScape: 0.4),
+      preferences: PreferenceProfile(pinkPurple: 0.7, redSky: 0.4),
     );
 
     final restored = UserPreferences.fromJson(original.toJson());
@@ -23,7 +23,7 @@ void main() {
     expect(restored.placeTypes, [LocationType.park, LocationType.elevatedViewpoint]);
     expect(restored.event, SunEvent.sunrise);
     expect(restored.preferences.pinkPurple, 0.7);
-    expect(restored.preferences.cityScape, 0.4);
+    expect(restored.preferences.redSky, 0.4);
   });
 
   test('A missing home location stays null', () {

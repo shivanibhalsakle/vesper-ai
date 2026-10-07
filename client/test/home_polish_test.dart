@@ -70,6 +70,15 @@ SavedDate _saved(String id, DateTime date, SunEvent event, double? score) => Sav
     );
 
 void main() {
+  testWidgets('Settings in the top bar uses the preferences (tune) icon', (tester) async {
+    await _pumpHome(tester, _Api(), DateTime(2026, 10, 6, 12));
+
+    final settings = find.byTooltip('Settings');
+    expect(settings, findsOneWidget);
+    expect(find.descendant(of: settings, matching: find.byIcon(Icons.tune)), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsNothing);
+  });
+
   group('DayPhase and greeting', () {
     test('phases follow the hour', () {
       expect(DayPhase.at(DateTime(2026, 10, 6, 6)), DayPhase.dawn);

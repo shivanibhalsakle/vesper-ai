@@ -59,6 +59,17 @@ void main() {
     expect(find.text('Find me a good viewing date'), findsOneWidget);
   });
 
+  testWidgets('Only the five sky sliders are offered (no location composition)', (tester) async {
+    await _pump(tester, _FakeApiClient());
+
+    expect(find.text('Red skies'), findsOneWidget);
+    expect(find.text('Location composition'), findsNothing);
+    expect(find.text('Silhouettes'), findsNothing);
+    expect(find.text('Water reflection'), findsNothing);
+    expect(find.text('City skyline'), findsNothing);
+    expect(find.text('Unobstructed horizon'), findsNothing);
+  });
+
   testWidgets('Saved preferences are loaded into the form', (tester) async {
     final api = _FakeApiClient(
       stored: const UserPreferences(

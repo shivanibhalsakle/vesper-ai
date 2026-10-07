@@ -38,10 +38,6 @@ class _PreferenceScreenState extends State<PreferenceScreen> {
   double _pinkPurple = 0.0;
   double _goldenOrange = 0.0;
   double _redSky = 0.0;
-  double _silhouettes = 0.0;
-  double _waterReflection = 0.0;
-  double _cityScape = 0.0;
-  double _unobstructedHorizon = 0.0;
 
   bool _loading = false;
 
@@ -52,10 +48,6 @@ class _PreferenceScreenState extends State<PreferenceScreen> {
       pinkPurple: _pinkPurple,
       goldenOrange: _goldenOrange,
       redSky: _redSky,
-      silhouettes: _silhouettes,
-      waterReflection: _waterReflection,
-      cityScape: _cityScape,
-      unobstructedHorizon: _unobstructedHorizon,
     );
 
     setState(() => _loading = true);
@@ -148,18 +140,6 @@ class _PreferenceScreenState extends State<PreferenceScreen> {
             _slider('Pink / purple tones', _pinkPurple, (v) => setState(() => _pinkPurple = v)),
             _slider('Golden / orange light', _goldenOrange, (v) => setState(() => _goldenOrange = v)),
             _slider('Red skies', _redSky, (v) => setState(() => _redSky = v)),
-            const Divider(height: 32),
-            Text('Location composition', style: Theme.of(context).textTheme.titleMedium),
-            Text(
-              'Used for location matching once Phase 3+ wiring covers it — collected now for your profile.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            _slider('Silhouettes', _silhouettes, (v) => setState(() => _silhouettes = v)),
-            _slider(
-                'Water reflection', _waterReflection, (v) => setState(() => _waterReflection = v)),
-            _slider('City skyline', _cityScape, (v) => setState(() => _cityScape = v)),
-            _slider('Unobstructed horizon', _unobstructedHorizon,
-                (v) => setState(() => _unobstructedHorizon = v)),
             const Divider(height: 32),
             TextField(
               decoration: const InputDecoration(

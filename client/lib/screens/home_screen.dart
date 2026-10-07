@@ -153,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () => _open(ProfileScreen(account: widget.account)),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.settings_outlined),
+                      icon: const Icon(Icons.tune),
                       tooltip: 'Settings',
                       onPressed: () => _open(const SettingsScreen()),
                     ),
