@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     firebase_credentials_path: str = ""
+    # Firebase Storage bucket where generated sky previews are kept (e.g.
+    # "vesper-ai-37d6f.firebasestorage.app"). Empty = previews still generate
+    # but aren't saved to the user's gallery.
+    firebase_storage_bucket: str = ""
     # Geoapify geocoding (address / place-name search) — see
     # app/services/geocoding.py. Free tier: 3,000 requests/day.
     geoapify_api_key: str = ""

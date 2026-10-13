@@ -8,6 +8,7 @@ from alembic import context
 from app.core.config import get_settings
 from app.db.base import Base
 from app.models.feedback import FeedbackEntry  # noqa: F401 — registers the table on Base
+from app.models.generated_preview import GeneratedPreview  # noqa: F401 — registers the table
 from app.models.image_usage import ImageGenerationUsage  # noqa: F401 — registers the table
 from app.models.osm_place import OsmLoadedRegion, OsmPlace  # noqa: F401 — registers the tables
 from app.models.place_cache import PlaceSearchCache  # noqa: F401 — registers the table

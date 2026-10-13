@@ -13,4 +13,5 @@ python-dotenv==1.0.1
 anthropic==0.120.0
 openai
 firebase-admin
+Pillow>=10.4,<12
 pytest

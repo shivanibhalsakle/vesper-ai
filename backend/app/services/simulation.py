@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from abc import ABC, abstractmethod
 
 import redis
@@ -12,6 +13,15 @@ from app.schemas.session import SunEvent
 from app.schemas.simulation import SimulationRequest, SimulationResponse
 from app.services.cache import Cache, RedisCache
 from app.services.image_limits import ensure_within_daily_limit, record_usage, remaining_today
+from app.services.preview_storage import (
+    PreviewStorage,
+    decode_data_uri,
+    get_default_storage,
+    shrink_data_uri,
+)
+from app.services.previews import find_by_prompt, save_preview
+
+logger = logging.getLogger(__name__)
 
 # Identical prompts (same location, event, sky conditions) reuse the same
 # generated image for a day instead of paying for another OpenAI call —
@@ -119,33 +129,65 @@ def _sun_visibility_description(visibility_likelihood: float) -> str:
     return "The sun is obscured, its light diffusing through the clouds."
 
 
+_DEFAULT_STORAGE = object()
+
+
 def generate_simulation(
     request: SimulationRequest,
     user_id: str,
     db: Session,
     provider: ImageGenProvider | None = None,
     cache: Cache | None = None,
+    storage: PreviewStorage | None | object = _DEFAULT_STORAGE,
 ) -> SimulationResponse:
     provider = provider or _get_default_provider()
     cache = cache if cache is not None else RedisCache()
+    if storage is _DEFAULT_STORAGE:
+        storage = get_default_storage()
     prompt = build_simulation_prompt(request)
-    cache_key = f"simulation:{hashlib.sha256(prompt.encode()).hexdigest()}"
+    prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
+    cache_key = f"simulation:{prompt_hash}"
+
+    # The user already generated this exact sky: show the saved one. No
+    # provider call and no use of today's allowance.
+    if storage is not None:
+        existing = find_by_prompt(db, user_id, prompt_hash)
+        if existing is not None:
+            try:
+                return SimulationResponse(
+                    prompt=prompt,
+                    image_url=storage.signed_url(existing.storage_path),
+                    provider_status="generated",
+                    remaining_today=remaining_today(db, user_id),
+                    preview_id=existing.id,
+                    saved=True,
+                )
+            except Exception:
+                logger.warning("Saved preview %s could not be read", existing.id, exc_info=True)
 
     cached_image = _cache_get(cache, cache_key)
     if cached_image is not None:
+        # Someone generated this sky already today: costs us nothing, so it
+        # doesn't count — but it still lands in this user's gallery.
+        image_url, preview_id = _keep(db, storage, user_id, prompt_hash, prompt, request, cached_image)
         return SimulationResponse(
             prompt=prompt,
-            image_url=cached_image,
+            image_url=image_url,
             provider_status="generated",
             remaining_today=remaining_today(db, user_id),
+            preview_id=preview_id,
+            saved=preview_id is not None,
         )
 
     # Raises ImageLimitExceeded if today's cap is already hit — checked here,
     # before paying for a generation, not recorded until it actually succeeds.
     ensure_within_daily_limit(db, user_id)
 
+    preview_id = None
     try:
-        image_url = provider.generate_image(prompt)
+        # Shrunk once, up front: the response, the cache and the stored copy
+        # are all the small WebP, not the multi-megabyte PNG.
+        image_url = shrink_data_uri(provider.generate_image(prompt))
         status = "generated"
         _cache_set(cache, cache_key, image_url)
         record_usage(db, user_id)
@@ -156,12 +198,43 @@ def generate_simulation(
         image_url = None
         status = "error"
 
+    if image_url is not None:
+        image_url, preview_id = _keep(db, storage, user_id, prompt_hash, prompt, request, image_url)
+
     return SimulationResponse(
         prompt=prompt,
         image_url=image_url,
         provider_status=status,
         remaining_today=remaining_today(db, user_id),
+        preview_id=preview_id,
+        saved=preview_id is not None,
     )
+
+
+def _keep(
+    db: Session,
+    storage: PreviewStorage | None,
+    user_id: str,
+    prompt_hash: str,
+    prompt: str,
+    request: SimulationRequest,
+    image_url: str,
+) -> tuple[str, str | None]:
+    """Saves the image to the user's gallery. Returns (url to show, saved
+    preview id). Never raises: if it can't be kept, the user still gets the
+    image they generated, just not saved."""
+    if storage is None:
+        return image_url, None
+    data = decode_data_uri(image_url)
+    if data is None:
+        return image_url, None  # a hosted URL, nothing we can re-encode
+    try:
+        row = save_preview(db, storage, user_id, prompt_hash, prompt, request, data)
+        return storage.signed_url(row.storage_path), row.id
+    except Exception:
+        logger.warning("Could not save sky preview for %s", user_id, exc_info=True)
+        db.rollback()
+        return image_url, None
 
 
 def _cache_get(cache: Cache, key: str) -> str | None:

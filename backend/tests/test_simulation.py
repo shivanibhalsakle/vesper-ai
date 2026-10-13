@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 import app.services.simulation as simulation_module
@@ -18,6 +19,13 @@ from app.services.simulation import (
 client = TestClient(app)
 
 USER_ID = "user-1"
+
+
+@pytest.fixture(autouse=True)
+def _no_real_preview_storage(monkeypatch):
+    # These tests are about prompts, limits and caching; whether a Firebase
+    # bucket happens to be configured in .env must not change them.
+    monkeypatch.setattr(simulation_module, "get_default_storage", lambda: None)
 
 
 class InMemoryCache:

@@ -72,8 +72,9 @@ def test_different_event_or_day_is_a_separate_save(client):
 def test_owner_comes_from_the_token_not_the_body(client, db_session):
     client.post("/me/saved-dates", json=_body(user_id="attacker"))
 
-    row = db_session.query(SavedDate).one()
-    assert row.user_id == TEST_USER_ID
+    # Not .one() over the whole table: a dev database can hold real rows.
+    rows = db_session.query(SavedDate).filter(SavedDate.user_id.in_([TEST_USER_ID, "attacker"])).all()
+    assert [row.user_id for row in rows] == [TEST_USER_ID]
 
 
 def test_users_only_see_their_own_saved_dates(client):

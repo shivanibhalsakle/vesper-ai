@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 from app.schemas.location import LocationType
@@ -29,3 +31,25 @@ class SimulationResponse(BaseModel):
     disclaimer: str = DISCLAIMER
     provider_status: str  # "generated" | "not_configured" | "error"
     remaining_today: int  # previews left today under the per-user daily cap
+    # Set when the image was also kept in the user's "Sky previews" gallery;
+    # image_url is then a short-lived link to the stored copy.
+    preview_id: str | None = None
+    saved: bool = False
+
+
+class RemainingPreviews(BaseModel):
+    remaining_today: int
+    daily_limit: int
+
+
+class PreviewRecord(BaseModel):
+    """One image in the user's gallery."""
+
+    id: str
+    image_url: str  # short-lived signed link; fetched fresh on every list
+    location_name: str
+    location_type: LocationType
+    event: SunEvent
+    prompt: str
+    disclaimer: str = DISCLAIMER
+    created_at: datetime
