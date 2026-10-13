@@ -79,6 +79,47 @@ class ApiClient {
     return SimulationResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  /// How many sky previews the user can still generate today.
+  Future<RemainingPreviews> fetchRemainingPreviews() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/simulate/remaining'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return RemainingPreviews.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// The user's generated sky previews, newest first.
+  Future<List<SkyPreviewRecord>> fetchPreviews() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/me/previews'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return (jsonDecode(response.body) as List)
+        .map((item) => SkyPreviewRecord.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> deletePreview(String id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/me/previews/$id'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 204) {
+      throw ApiException(_errorMessage(response));
+    }
+  }
+
   // The backend identifies the user from this Firebase ID token — the app
   // never sends a user id itself. getIdToken() refreshes expired tokens.
   Future<Map<String, String>> _authHeaders() async {

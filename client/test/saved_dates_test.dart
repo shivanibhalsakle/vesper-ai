@@ -115,7 +115,7 @@ void main() {
 
       expect(find.textContaining('No saved dates yet'), findsOneWidget);
       expect(find.text('Saved searches'), findsOneWidget);
-      expect(find.text('Photos & sky previews'), findsOneWidget);
+      expect(find.text('Photos'), findsOneWidget);
     });
 
     testWidgets('splits upcoming and past dates', (tester) async {
@@ -143,6 +143,7 @@ void main() {
       expect(api.skyRequests.single.date, DateTime(2026, 10, 7));
       expect(api.skyRequests.single.preferences!.goldenOrange, 0.9);
       expect(find.text('Expected sky'), findsOneWidget);
+      expect(find.byKey(const Key('preview-sky')), findsOneWidget);
       expect(find.byKey(const Key('preference-marker')), findsOneWidget);
     });
 

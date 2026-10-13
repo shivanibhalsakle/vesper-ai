@@ -120,6 +120,7 @@ void main() {
       expect(find.text('41%'), findsOneWidget);
       expect(find.byKey(const Key('best-day-tile')), findsOneWidget);
       expect(find.text('Expected sky'), findsOneWidget);
+      expect(find.byKey(const Key('preview-sky')), findsOneWidget);
       // Preference markers: golden/orange and clear sky are turned up.
       expect(find.byKey(const Key('preference-marker')), findsNWidgets(2));
     });

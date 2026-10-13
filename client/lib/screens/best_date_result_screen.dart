@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../models/best_date.dart';
 import '../models/geocode_result.dart';
 import '../models/preference_profile.dart';
+import '../models/simulation.dart';
 import '../services/api_client.dart';
 import '../utils/format.dart';
+import '../widgets/preview_sky_button.dart';
 import '../widgets/rise_in.dart';
 import '../widgets/save_date_button.dart';
 import '../widgets/sky_detail_view.dart';
@@ -93,6 +95,21 @@ class BestDateResultScreen extends StatelessWidget {
                     label: best.spot?.name ?? location.label,
                     savedScore: best.sky.preferenceMatchScore,
                     apiClient: apiClient,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                RiseIn(
+                  index: 4,
+                  child: PreviewSkyButton(
+                    apiClient: apiClient,
+                    request: SimulationRequest(
+                      locationName: best.spot?.name ?? location.label,
+                      locationType: best.spot?.type,
+                      event: best.sky.event,
+                      cloudCoverSummary: best.sky.cloudCoverSummary,
+                      visibilityLikelihood: best.sky.visibilityLikelihood,
+                      colorProbabilities: best.sky.colorProbabilities,
+                    ),
                   ),
                 ),
               ],

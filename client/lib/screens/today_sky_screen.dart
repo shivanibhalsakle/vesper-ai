@@ -5,11 +5,13 @@ import '../models/location_type.dart';
 import '../models/preference_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
+import '../models/simulation.dart';
 import '../models/sky_forecast.dart';
 import '../services/api_client.dart';
 import '../utils/format.dart';
 import '../utils/maps.dart';
 import '../widgets/location_picker.dart';
+import '../widgets/preview_sky_button.dart';
 import '../theme/flows.dart';
 import '../widgets/flow_header.dart';
 import '../widgets/rise_in.dart';
@@ -201,6 +203,17 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
               savedScore: _sky!.preferenceMatchScore,
               apiClient: _apiClient,
             ),
+            const SizedBox(height: 8),
+            PreviewSkyButton(
+              apiClient: _apiClient,
+              request: SimulationRequest(
+                locationName: _location!.label,
+                event: _sky!.event,
+                cloudCoverSummary: _sky!.cloudCoverSummary,
+                visibilityLikelihood: _sky!.visibilityLikelihood,
+                colorProbabilities: _sky!.colorProbabilities,
+              ),
+            ),
           ],
           if (_sky != null || _skyError != null) ...[
             const Divider(height: 40),
@@ -219,6 +232,8 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
                     rank: i + 1,
                     spot: _spots![i],
                     showMatch: _preferences.hasSkyPreference,
+                    event: _sky?.event ?? _event,
+                    apiClient: _apiClient,
                   ),
                 ),
           ],
@@ -232,8 +247,16 @@ class _SpotCard extends StatelessWidget {
   final int rank;
   final LocationResult spot;
   final bool showMatch;
+  final SunEvent event;
+  final ApiClient apiClient;
 
-  const _SpotCard({required this.rank, required this.spot, required this.showMatch});
+  const _SpotCard({
+    required this.rank,
+    required this.spot,
+    required this.showMatch,
+    required this.event,
+    required this.apiClient,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +279,7 @@ class _SpotCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                    CircleAvatar(child: Text('$rank')),
+                  CircleAvatar(child: Text('$rank')),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -290,9 +313,23 @@ class _SpotCard extends StatelessWidget {
                 children: [
                   Icon(Icons.map_outlined, size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 6),
-                  Text(
-                    'Open in Google Maps',
-                    style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary),
+                  Expanded(
+                    child: Text(
+                      'Open in Google Maps',
+                      style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary),
+                    ),
+                  ),
+                  PreviewSkyButton(
+                    compact: true,
+                    apiClient: apiClient,
+                    request: SimulationRequest(
+                      locationName: spot.name,
+                      locationType: spot.type,
+                      event: event,
+                      cloudCoverSummary: spot.cloudCoverSummary,
+                      visibilityLikelihood: spot.visibilityLikelihood,
+                      colorProbabilities: spot.colorProbabilities,
+                    ),
                   ),
                 ],
               ),

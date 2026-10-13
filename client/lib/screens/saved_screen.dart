@@ -2,24 +2,30 @@ import 'package:flutter/material.dart';
 
 import '../models/preference_profile.dart';
 import '../models/saved_date.dart';
+import '../models/simulation.dart';
 import '../models/session_request.dart';
 import '../models/sky_forecast.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/gradient_icon_disc.dart';
+import '../widgets/preview_sky_button.dart';
 import '../widgets/rise_in.dart';
 import '../widgets/saved_dates_calendar.dart';
 import '../widgets/sky_detail_view.dart';
+import '../widgets/sky_previews_sheet.dart';
 import 'saved_profiles_screen.dart';
 
 // Open-Meteo's forecast horizon: beyond this there is nothing to show yet.
 const _forecastHorizonDays = 15;
 
+enum _SavedView { dates, previews }
+
 DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 /// Everything the user has saved: dates (with a calendar and a live forecast
-/// for each), plus saved searches. Photos and AI previews come later.
+/// for each), saved searches and, behind its own tab, the sky previews the
+/// user has generated. Photos come later.
 class SavedScreen extends StatefulWidget {
   final ApiClient? apiClient;
   final DateTime? today; // injectable for tests
@@ -38,6 +44,7 @@ class _SavedScreenState extends State<SavedScreen> {
   List<SavedDate> _dates = const [];
   PreferenceProfile _preferences = const PreferenceProfile();
   DateTime? _selectedDay;
+  _SavedView _view = _SavedView.dates;
 
   DateTime get _today => _dayOnly(widget.today ?? DateTime.now());
 
@@ -71,6 +78,14 @@ class _SavedScreenState extends State<SavedScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  // The Sky previews tab is a sheet over this page, not a page of its own:
+  // the tab lights up while it is open and goes back to Dates when it closes.
+  Future<void> _showPreviews() async {
+    setState(() => _view = _SavedView.previews);
+    await showSkyPreviewsSheet(context, apiClient: _apiClient);
+    if (mounted) setState(() => _view = _SavedView.dates);
   }
 
   void _toast(String message) =>
@@ -153,6 +168,27 @@ class _SavedScreenState extends State<SavedScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        SegmentedButton<_SavedView>(
+          key: const Key('saved-view-tabs'),
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(
+              value: _SavedView.dates,
+              icon: Icon(Icons.calendar_month_outlined),
+              label: Text('Dates'),
+            ),
+            ButtonSegment(
+              value: _SavedView.previews,
+              icon: Icon(Icons.auto_awesome),
+              label: Text('Sky previews'),
+            ),
+          ],
+          selected: {_view},
+          onSelectionChanged: (selection) {
+            if (selection.first == _SavedView.previews) _showPreviews();
+          },
+        ),
+        const SizedBox(height: 16),
         SavedDatesCalendar(
           today: _today,
           markedDates: {for (final d in _dates) _dayOnly(d.eventDate)},
@@ -211,7 +247,7 @@ class _SavedScreenState extends State<SavedScreen> {
           contentPadding: EdgeInsets.zero,
           enabled: false,
           leading: Icon(Icons.photo_library_outlined),
-          title: Text('Photos & sky previews'),
+          title: Text('Photos'),
           subtitle: Text('Coming soon'),
         ),
       ],
@@ -380,7 +416,24 @@ class _SavedDateDetailState extends State<_SavedDateDetail> {
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           );
         }
-        return SkyDetailView(sky: snapshot.data!, preferences: widget.preferences);
+        final sky = snapshot.data!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkyDetailView(sky: sky, preferences: widget.preferences),
+            const SizedBox(height: 16),
+            PreviewSkyButton(
+              apiClient: widget.apiClient,
+              request: SimulationRequest(
+                locationName: widget.date.label,
+                event: widget.date.event,
+                cloudCoverSummary: sky.cloudCoverSummary,
+                visibilityLikelihood: sky.visibilityLikelihood,
+                colorProbabilities: sky.colorProbabilities,
+              ),
+            ),
+          ],
+        );
       },
     );
   }

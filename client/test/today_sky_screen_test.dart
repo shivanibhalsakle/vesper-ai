@@ -119,6 +119,8 @@ void main() {
     expect(find.text('Sunset at 6:12 PM'), findsOneWidget);
     expect(find.text('Expected sky'), findsOneWidget);
     expect(find.text('Best spots for this sky'), findsOneWidget);
+    // One preview button for the sky, one for the spot card.
+    expect(find.byKey(const Key('preview-sky')), findsNWidgets(2));
     expect(find.text('Brooklyn Bridge Park'), findsWidgets);
     expect(find.text('Open water view west over the harbour.'), findsOneWidget);
     expect(find.text('77%'), findsOneWidget);
