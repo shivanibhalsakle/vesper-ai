@@ -53,7 +53,7 @@ def save_preview(
         prompt_hash=prompt_hash,
         prompt=prompt,
         location_name=request.location_name,
-        location_type=request.location_type.value,
+        location_type=request.location_type.value if request.location_type else "",
         event=request.event.value,
         storage_path=path,
     )

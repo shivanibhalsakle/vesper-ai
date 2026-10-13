@@ -315,3 +315,25 @@ def test_gallery_is_empty_when_storage_is_not_configured(client):
     app.dependency_overrides[get_default_storage] = lambda: None
 
     assert client.get("/me/previews").json() == []
+
+
+def test_a_place_without_a_spot_type_can_be_previewed_and_listed(api, db_session):
+    client, storage = api
+    request = SimulationRequest(
+        location_name="Somewhere I picked",
+        event=SunEvent.SUNRISE,
+        cloud_cover_summary="clear",
+        visibility_likelihood=0.9,
+        color_probabilities=ColorProbabilities(pink=0.1, purple=0.1, orange=0.5, red=0.1, golden=0.5),
+    )
+
+    result = generate_simulation(
+        request, TEST_USER_ID, db_session, provider=PngProvider(), cache=InMemoryCache(),
+        storage=storage,
+    )
+
+    assert result.saved is True
+    assert "scenic outdoor viewpoint" in result.prompt
+    listed = client.get("/me/previews").json()
+    assert listed[0]["location_name"] == "Somewhere I picked"
+    assert listed[0]["location_type"] is None

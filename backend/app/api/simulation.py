@@ -60,7 +60,7 @@ def get_previews(
                 id=row.id,
                 image_url=url,
                 location_name=row.location_name,
-                location_type=row.location_type,
+                location_type=row.location_type or None,
                 event=row.event,
                 prompt=row.prompt,
                 created_at=row.created_at,

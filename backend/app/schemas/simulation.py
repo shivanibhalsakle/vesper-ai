@@ -18,7 +18,9 @@ class SimulationRequest(BaseModel):
     """
 
     location_name: str
-    location_type: LocationType
+    # None for a place picked on the map, which has no spot type; the prompt
+    # then uses a generic viewpoint foreground.
+    location_type: LocationType | None = None
     event: SunEvent
     cloud_cover_summary: str
     visibility_likelihood: float
@@ -48,7 +50,7 @@ class PreviewRecord(BaseModel):
     id: str
     image_url: str  # short-lived signed link; fetched fresh on every list
     location_name: str
-    location_type: LocationType
+    location_type: LocationType | None = None
     event: SunEvent
     prompt: str
     disclaimer: str = DISCLAIMER
