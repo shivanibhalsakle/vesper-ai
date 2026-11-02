@@ -1,9 +1,14 @@
+import logging
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_user_id
+from app.core.diagnostics import describe_error
 from app.schemas.sky import SkyRequest, SkyResponse
 from app.services.sky import sky_at
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["sky"])
 
@@ -17,7 +22,8 @@ def sky_forecast(
     """
     try:
         return sky_at(request)
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
+        logger.warning("Weather provider failed: %s", describe_error(exc))
         raise HTTPException(
             status_code=503,
             detail="Weather data is temporarily unavailable. Please try again in a moment.",

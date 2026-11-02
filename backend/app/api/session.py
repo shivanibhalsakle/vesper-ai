@@ -1,8 +1,10 @@
+import logging
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 from fastapi import APIRouter, HTTPException
 
+from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.session import LocationResult, SessionRequest, SessionResponse, SunEvent
 from app.services.astronomy import get_sun_events
 from app.services.explanation import generate_explanation
@@ -10,6 +12,8 @@ from app.services.places import PlaceDataUnavailable, find_candidate_locations
 from app.services.scoring import score_location
 from app.services.timezones import resolve_timezone
 from app.services.weather import fetch_hourly_forecast
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["session"])
 
@@ -26,7 +30,8 @@ def create_session(request: SessionRequest) -> SessionResponse:
         candidates = find_candidate_locations(
             request.lat, request.lon, request.radius_km, request.place_types
         )[:MAX_CANDIDATES_SCORED]
-    except PlaceDataUnavailable:
+    except PlaceDataUnavailable as exc:
+        logger.warning("Place data unavailable: %s", describe_place_error(exc))
         raise HTTPException(
             status_code=503,
             detail="Place data is temporarily unavailable. Please try again in a moment.",
@@ -51,7 +56,8 @@ def create_session(request: SessionRequest) -> SessionResponse:
             )
             score = score_location(event_time, forecast.hourly, request.preferences)
             scored.append((candidate, event_time, score))
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
+        logger.warning("Weather provider failed: %s", describe_error(exc))
         raise HTTPException(
             status_code=503,
             detail="Weather data is temporarily unavailable. Please try again in a moment.",

@@ -1,10 +1,15 @@
+import logging
+
 import httpx
 from fastapi import APIRouter, HTTPException
 
+from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.trip_window import TripWindowRequest, TripWindowResponse, TripWindowResult
 from app.services.explanation import generate_explanation
 from app.services.places import PlaceDataUnavailable
 from app.services.trip_window import find_best_day_and_location
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["trip-window"])
 
@@ -25,12 +30,14 @@ def create_trip_window(request: TripWindowRequest) -> TripWindowResponse:
             request.preferences,
             request.tz_name,
         )
-    except PlaceDataUnavailable:
+    except PlaceDataUnavailable as exc:
+        logger.warning("Place data unavailable: %s", describe_place_error(exc))
         raise HTTPException(
             status_code=503,
             detail="Place data is temporarily unavailable. Please try again in a moment.",
         )
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
+        logger.warning("Weather provider failed: %s", describe_error(exc))
         raise HTTPException(
             status_code=503,
             detail="Weather data is temporarily unavailable. Please try again in a moment.",
