@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.data.curated_locations import CURATED_LOCATIONS
 from app.schemas.location import LocationRecord, LocationSource, LocationType
 from app.services.cache import Cache, RedisCache
+from app.services.coverage import Coverage, PostgresCoverage
 from app.services.place_index import PlaceIndex, PostgresPlaceIndex
 from app.services.place_store import PlaceStore, PostgresPlaceStore
 
@@ -52,6 +53,13 @@ class PlaceDataUnavailable(Exception):
     """
 
 
+class OutsideCoverage(PlaceDataUnavailable):
+    """The search point is outside every region we've loaded. A subclass, so
+    callers that only care that place data is missing (the daily reminders)
+    handle it without change; the API tells the user where Vesper does work.
+    """
+
+
 class _OverpassRuntimeError(Exception):
     """Overpass answered HTTP 200 but with an error remark instead of data."""
 
@@ -65,6 +73,7 @@ def find_candidate_locations(
     cache: Cache | None = None,
     store: PlaceStore | None = None,
     index: PlaceIndex | None = None,
+    coverage: Coverage | None = None,
 ) -> list[LocationRecord]:
     # Our own loaded OSM data comes first: it's fast and doesn't depend on a
     # public service being up. Overpass below only covers areas we haven't loaded.
@@ -74,6 +83,18 @@ def find_candidate_locations(
     )
     if indexed:
         return _with_curated(indexed, lat, lon, radius_km, place_types)
+
+    covered = (coverage if coverage is not None else PostgresCoverage()).covers(lat, lon)
+    if covered:
+        # We loaded this area, so finding nothing is a real answer; waiting on
+        # Overpass for a second opinion would only make the search slow.
+        return _with_curated([], lat, lon, radius_km, place_types)
+    if covered is False and not get_settings().overpass_outside_coverage:
+        curated = _curated_candidates(lat, lon, radius_km, place_types)
+        if not curated:
+            raise OutsideCoverage("Search point is outside the loaded regions")
+        curated.sort(key=lambda r: r.distance_km)
+        return curated
 
     cache = cache if cache is not None else RedisCache()
     store = store if store is not None else PostgresPlaceStore()

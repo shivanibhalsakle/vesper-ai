@@ -3,10 +3,11 @@ import logging
 import httpx
 from fastapi import APIRouter, HTTPException
 
+from app.api.coverage import outside_coverage_error
 from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.trip_window import TripWindowRequest, TripWindowResponse, TripWindowResult
 from app.services.explanation import generate_explanation
-from app.services.places import PlaceDataUnavailable
+from app.services.places import OutsideCoverage, PlaceDataUnavailable
 from app.services.trip_window import find_best_day_and_location
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,8 @@ def create_trip_window(request: TripWindowRequest) -> TripWindowResponse:
             request.preferences,
             request.tz_name,
         )
+    except OutsideCoverage:
+        raise outside_coverage_error()
     except PlaceDataUnavailable as exc:
         logger.warning("Place data unavailable: %s", describe_place_error(exc))
         raise HTTPException(

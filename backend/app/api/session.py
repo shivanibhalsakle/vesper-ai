@@ -4,11 +4,12 @@ from concurrent.futures import ThreadPoolExecutor
 import httpx
 from fastapi import APIRouter, HTTPException
 
+from app.api.coverage import outside_coverage_error
 from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.session import LocationResult, SessionRequest, SessionResponse, SunEvent
 from app.services.astronomy import get_sun_events
 from app.services.explanation import generate_explanation
-from app.services.places import PlaceDataUnavailable, find_candidate_locations
+from app.services.places import OutsideCoverage, PlaceDataUnavailable, find_candidate_locations
 from app.services.scoring import score_location
 from app.services.timezones import resolve_timezone
 from app.services.weather import fetch_hourly_forecast
@@ -30,6 +31,8 @@ def create_session(request: SessionRequest) -> SessionResponse:
         candidates = find_candidate_locations(
             request.lat, request.lon, request.radius_km, request.place_types
         )[:MAX_CANDIDATES_SCORED]
+    except OutsideCoverage:
+        raise outside_coverage_error()
     except PlaceDataUnavailable as exc:
         logger.warning("Place data unavailable: %s", describe_place_error(exc))
         raise HTTPException(

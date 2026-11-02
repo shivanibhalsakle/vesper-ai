@@ -9,6 +9,19 @@ from app.main import app
 TEST_USER_ID = "test-user"
 
 
+class UnknownCoverage:
+    def covers(self, lat, lon):
+        return None
+
+
+@pytest.fixture(autouse=True)
+def unknown_coverage(monkeypatch):
+    """Place lookups don't depend on which regions the dev database has loaded;
+    tests that care pass their own coverage (see test_coverage.py).
+    """
+    monkeypatch.setattr("app.services.places.PostgresCoverage", UnknownCoverage)
+
+
 @pytest.fixture()
 def db_session():
     """A DB session bound to a transaction that's rolled back after the test,

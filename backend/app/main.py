@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.best_date import router as best_date_router
+from app.api.coverage import router as coverage_router
 from app.api.feedback import router as feedback_router
 from app.api.geocode import router as geocode_router
 from app.api.health import router as health_router
@@ -34,6 +35,7 @@ app.include_router(saved_profiles_router)
 app.include_router(trip_window_router)
 app.include_router(geocode_router)
 app.include_router(places_router)
+app.include_router(coverage_router)
 app.include_router(sky_router)
 app.include_router(best_date_router)
 app.include_router(me_router)

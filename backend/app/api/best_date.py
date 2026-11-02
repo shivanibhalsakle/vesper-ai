@@ -3,11 +3,12 @@ import logging
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.coverage import outside_coverage_error
 from app.core.auth import get_current_user_id
 from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.best_date import BestDateRequest, BestDateResponse
 from app.services.best_date import find_best_dates
-from app.services.places import PlaceDataUnavailable
+from app.services.places import OutsideCoverage, PlaceDataUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,8 @@ def best_date(
     """
     try:
         return find_best_dates(request)
+    except OutsideCoverage:
+        raise outside_coverage_error()
     except PlaceDataUnavailable as exc:
         logger.warning("Place data unavailable: %s", describe_place_error(exc))
         raise HTTPException(

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
         "https://overpass.kumi.systems/api/interpreter,"
         "https://overpass.private.coffee/api/interpreter"
     )
+    # Searches outside the regions we've loaded (osm_loaded_regions) are refused
+    # with a "not covered yet" message. Set true to let them try the public
+    # Overpass service instead, which is slow and unreliable.
+    overpass_outside_coverage: bool = False
     # Shared secret for the /internal/* endpoints (e.g. the daily
     # notification rescore), called by a scheduled GitHub Actions workflow
     # rather than a Celery beat process — see app/api/internal.py.

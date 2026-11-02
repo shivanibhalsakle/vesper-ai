@@ -2,10 +2,11 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.api.coverage import outside_coverage_error
 from app.core.auth import get_current_user_id
 from app.core.diagnostics import describe_place_error
 from app.schemas.location import LocationRecord, LocationType
-from app.services.places import PlaceDataUnavailable, find_candidate_locations
+from app.services.places import OutsideCoverage, PlaceDataUnavailable, find_candidate_locations
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ def nearby_places(
     types = place_types or list(LocationType)
     try:
         spots = find_candidate_locations(lat, lon, radius_km, types)
+    except OutsideCoverage:
+        raise outside_coverage_error()
     except PlaceDataUnavailable as exc:
         logger.warning("Place data unavailable: %s", describe_place_error(exc))
         raise HTTPException(
