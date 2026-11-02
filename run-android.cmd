@@ -30,11 +30,23 @@ if errorlevel 1 (
   exit /b 1
 )
 
-rem 4. A heads-up if the backend is not answering yet.
-curl -s -o nul -m 5 http://localhost:8010/health
-if errorlevel 1 echo [warn] The backend is not answering on port 8010 yet. The app may show errors until it is up.
+rem 4. Give the backend up to about 40 seconds to start answering.
+set "UP="
+echo Waiting for the backend...
+for /l %%i in (1,1,20) do if not defined UP (curl -s -o nul -m 3 http://localhost:8010/health && set "UP=1" || ping -n 3 127.0.0.1 >nul)
+if not defined UP echo [warn] The backend is not answering on port 8010. The app will show errors until it is up.
+if defined UP echo Backend is up.
 
-rem 5. Run the app.
+rem 5. Flutter: use the one on PATH, else the usual install folder.
+where flutter >nul 2>nul
+if errorlevel 1 set "PATH=%PATH%;C:\src\flutter\bin"
+where flutter >nul 2>nul
+if errorlevel 1 (
+  echo Could not find flutter. Add its bin folder to PATH, or edit run-android.cmd.
+  exit /b 1
+)
+
+rem 6. Run the app.
 pushd "%~dp0client"
 flutter run -d %DEVICE% %*
 popd
