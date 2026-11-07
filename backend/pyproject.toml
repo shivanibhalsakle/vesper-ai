@@ -3,6 +3,8 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
+# Applied migrations are never edited, so they aren't linted.
+extend-exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]

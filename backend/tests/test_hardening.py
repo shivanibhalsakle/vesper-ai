@@ -33,7 +33,9 @@ SIMULATION_BODY = {
     "changes",
     [{"lat": 95}, {"lat": -90.5}, {"lon": 999}, {"lon": -180.5}, {"tz_name": "x" * 65}],
 )
-def test_out_of_range_location_is_rejected_before_any_lookup(client, monkeypatch, path, body, changes):
+def test_out_of_range_location_is_rejected_before_any_lookup(
+    client, monkeypatch, path, body, changes
+):
     def must_not_run(*_args, **_kwargs):
         raise AssertionError("place lookup ran for an invalid request")
 

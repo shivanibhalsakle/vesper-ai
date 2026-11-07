@@ -12,10 +12,11 @@ from app.api.places import router as places_router
 from app.api.saved_dates import router as saved_dates_router
 from app.api.saved_profiles import router as saved_profiles_router
 from app.api.session import router as session_router
-from app.api.sky import router as sky_router
 from app.api.simulation import router as simulation_router
+from app.api.sky import router as sky_router
 from app.api.trip_window import router as trip_window_router
 from app.core.config import get_settings
+
 
 def docs_settings(environment: str) -> dict[str, None]:
     """The interactive API docs are a free map of every endpoint, so they're

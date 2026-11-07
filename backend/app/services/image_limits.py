@@ -30,7 +30,8 @@ def ensure_within_daily_limit(db: Session, user_id: str, on_date: date | None = 
     )
     if global_total >= GLOBAL_DAILY_LIMIT:
         raise ImageLimitExceeded(
-            "Vesper has hit its daily sky-preview limit across all users. Please try again tomorrow."
+            "Vesper has hit its daily sky-preview limit across all users. "
+            "Please try again tomorrow."
         )
 
     if _usage_count(db, user_id, on_date) >= DAILY_LIMIT_PER_USER:

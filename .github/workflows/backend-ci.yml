@@ -72,6 +72,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.txt
 
+      # Style rules from pyproject.toml (line length, import order, unused
+      # imports). Fast, so it runs before anything that needs the database.
+      - name: Lint
+        run: ruff check .
+
       # Starting from an empty database proves the whole migration chain
       # still builds, the same way a fresh deploy would.
       - name: Apply migrations

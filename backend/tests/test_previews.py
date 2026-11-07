@@ -16,7 +16,6 @@ from app.schemas.session import SunEvent
 from app.schemas.simulation import SimulationRequest
 from app.services.image_limits import DAILY_LIMIT_PER_USER, ImageLimitExceeded
 from app.services.preview_storage import (
-    decode_data_uri,
     get_default_storage,
     shrink_data_uri,
     to_webp,
@@ -84,7 +83,9 @@ def _request(name: str = "Brooklyn Bridge Park") -> SimulationRequest:
         event=SunEvent.SUNSET,
         cloud_cover_summary="partly cloudy",
         visibility_likelihood=0.9,
-        color_probabilities=ColorProbabilities(pink=0.6, purple=0.2, orange=0.8, red=0.1, golden=0.85),
+        color_probabilities=ColorProbabilities(
+            pink=0.6, purple=0.2, orange=0.8, red=0.1, golden=0.85
+        ),
     )
 
 
@@ -324,7 +325,9 @@ def test_a_place_without_a_spot_type_can_be_previewed_and_listed(api, db_session
         event=SunEvent.SUNRISE,
         cloud_cover_summary="clear",
         visibility_likelihood=0.9,
-        color_probabilities=ColorProbabilities(pink=0.1, purple=0.1, orange=0.5, red=0.1, golden=0.5),
+        color_probabilities=ColorProbabilities(
+            pink=0.1, purple=0.1, orange=0.5, red=0.1, golden=0.5
+        ),
     )
 
     result = generate_simulation(

@@ -66,7 +66,10 @@ def test_place_failure_is_logged_with_its_cause(client, monkeypatch, caplog):
 
     assert response.status_code == 503
     assert "Place data is temporarily unavailable" in response.json()["detail"]
-    assert "Place data unavailable: All Overpass attempts failed; cause: ConnectError" in caplog.text
+    assert (
+        "Place data unavailable: All Overpass attempts failed; cause: ConnectError"
+        in caplog.text
+    )
 
 
 @pytest.mark.parametrize("module", [session_api, best_date_api])

@@ -35,7 +35,9 @@ LOCATION_TYPE_FOREGROUND = {
     LocationType.PARK: "a green park landscape",
     LocationType.WATERFRONT: "a waterfront promenade with calm water reflecting the sky",
     LocationType.PROMENADE: "a paved waterfront promenade",
-    LocationType.ELEVATED_VIEWPOINT: "an elevated vantage point overlooking the skyline and horizon",
+    LocationType.ELEVATED_VIEWPOINT: (
+        "an elevated vantage point overlooking the skyline and horizon"
+    ),
 }
 
 
@@ -169,7 +171,9 @@ def generate_simulation(
     if cached_image is not None:
         # Someone generated this sky already today: costs us nothing, so it
         # doesn't count — but it still lands in this user's gallery.
-        image_url, preview_id = _keep(db, storage, user_id, prompt_hash, prompt, request, cached_image)
+        image_url, preview_id = _keep(
+            db, storage, user_id, prompt_hash, prompt, request, cached_image
+        )
         return SimulationResponse(
             prompt=prompt,
             image_url=image_url,

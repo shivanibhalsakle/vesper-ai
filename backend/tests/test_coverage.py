@@ -208,11 +208,15 @@ def test_message_sorts_names_and_summarises_long_lists(monkeypatch):
 
 def test_message_without_any_regions_still_reads_well(monkeypatch):
     monkeypatch.setattr(coverage_module, "loaded_regions", lambda: [])
-    assert outside_coverage_message() == "Vesper doesn't cover this area yet. More places are on the way."
+    assert outside_coverage_message() == (
+        "Vesper doesn't cover this area yet. More places are on the way."
+    )
 
 
 def test_coverage_endpoint_lists_regions_with_bounds(client, monkeypatch):
-    monkeypatch.setattr(coverage_module, "loaded_regions", lambda: ["texas", "district-of-columbia"])
+    monkeypatch.setattr(
+        coverage_module, "loaded_regions", lambda: ["texas", "district-of-columbia"]
+    )
 
     response = client.get("/coverage")
 
@@ -261,5 +265,6 @@ def test_endpoints_tell_the_user_where_vesper_works(client, monkeypatch, method,
 
     assert response.status_code == 422
     assert response.json()["detail"] == (
-        "Vesper doesn't cover this area yet. It currently covers New York, Texas, with more on the way."
+        "Vesper doesn't cover this area yet. "
+        "It currently covers New York, Texas, with more on the way."
     )

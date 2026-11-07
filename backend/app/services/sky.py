@@ -1,4 +1,5 @@
 from datetime import date, datetime
+
 from zoneinfo import ZoneInfo
 
 from app.schemas.preferences import PreferenceProfile

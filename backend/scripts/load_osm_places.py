@@ -6,7 +6,8 @@ download. Each finished region is recorded, so an interrupted run resumes.
 
 Run from backend/, inside the container so dependencies match production:
 
-  docker compose run --rm backend sh -c "pip install -q --target /tmp/deps -r requirements-data.txt \
+  docker compose run --rm backend sh -c "pip install -q --target /tmp/deps \
+      -r requirements-data.txt \
       && PYTHONPATH=/tmp/deps python -m scripts.load_osm_places --region new-york"
 
   ... --all-us                      every US state + DC + Puerto Rico
@@ -73,7 +74,10 @@ def download(region: str, work_dir: Path) -> Path:
                         written += len(chunk)
                         if written >= next_report:
                             rate = (written - have) / max(time.monotonic() - started, 1) / 1e6
-                            print(f"  downloaded {written / 1e6:,.0f} MB ({rate:.1f} MB/s)", flush=True)
+                            print(
+                                f"  downloaded {written / 1e6:,.0f} MB ({rate:.1f} MB/s)",
+                                flush=True,
+                            )
                             next_report += 50 * 1024 * 1024
             return destination
         except (httpx.HTTPError, OSError) as exc:
@@ -163,7 +167,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--all-us", action="store_true", help="load every US region")
     parser.add_argument("--pbf", type=Path, help="use a local .osm.pbf instead of downloading")
     parser.add_argument("--force", action="store_true", help="reload regions already loaded")
-    parser.add_argument("--keep-download", action="store_true", help="don't delete the .pbf afterwards")
+    parser.add_argument(
+        "--keep-download", action="store_true", help="don't delete the .pbf afterwards"
+    )
     parser.add_argument("--work-dir", type=Path, help="where to put downloads (default: temp dir)")
     parser.add_argument(
         "--max-db-mb",
@@ -193,7 +199,10 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             size_mb = database_size_mb(session)
         if size_mb >= args.max_db_mb:
-            print(f"Database is {size_mb:,.0f} MB (limit {args.max_db_mb:,.0f}). Stopping before {region}.")
+            print(
+                f"Database is {size_mb:,.0f} MB (limit {args.max_db_mb:,.0f}). "
+                f"Stopping before {region}."
+            )
             failures.append(region)
             break
 
@@ -209,7 +218,10 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             if not args.pbf and not args.keep_download:
                 (work_dir / f"{region}.osm.pbf").unlink(missing_ok=True)
-        print(f"[{region}] done: {total:,} places in {time.monotonic() - started:,.0f}s", flush=True)
+        print(
+            f"[{region}] done: {total:,} places in {time.monotonic() - started:,.0f}s",
+            flush=True,
+        )
 
     with session_factory() as session:
         print(f"Finished. Database size: {database_size_mb(session):,.0f} MB")

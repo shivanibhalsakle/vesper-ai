@@ -1,9 +1,9 @@
 from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from zoneinfo import ZoneInfo
 
 import app.api.best_date as bd_api
 import app.services.best_date as bd

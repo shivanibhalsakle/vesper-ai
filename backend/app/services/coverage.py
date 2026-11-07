@@ -41,7 +41,8 @@ def reset_cache() -> None:
 def _load_from_db(session_factory: Callable[[], Session] = SessionLocal) -> list[str] | None:
     session = session_factory()
     try:
-        return list(session.scalars(select(OsmLoadedRegion.region).order_by(OsmLoadedRegion.region)))
+        statement = select(OsmLoadedRegion.region).order_by(OsmLoadedRegion.region)
+        return list(session.scalars(statement))
     except SQLAlchemyError:
         logger.warning("Loaded-region lookup failed", exc_info=True)
         return None
@@ -114,6 +115,9 @@ def outside_coverage_message(regions: list[dict] | None = None) -> str:
     if not regions:
         return f"{start} More places are on the way."
     if len(regions) > MAX_NAMES_IN_MESSAGE:
-        return f"{start} It currently covers {len(regions)} US states and regions, with more on the way."
+        return (
+            f"{start} It currently covers {len(regions)} US states and regions, "
+            "with more on the way."
+        )
     names = ", ".join(region["name"] for region in regions)
     return f"{start} It currently covers {names}, with more on the way."

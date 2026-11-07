@@ -72,7 +72,9 @@ def save_preview(
     return row
 
 
-def delete_preview(db: Session, storage: PreviewStorage | None, user_id: str, preview_id: str) -> bool:
+def delete_preview(
+    db: Session, storage: PreviewStorage | None, user_id: str, preview_id: str
+) -> bool:
     row = (
         db.query(GeneratedPreview)
         .filter(GeneratedPreview.id == preview_id, GeneratedPreview.user_id == user_id)

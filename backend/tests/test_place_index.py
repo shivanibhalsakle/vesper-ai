@@ -37,7 +37,13 @@ def test_type_mask_round_trips():
 
 def test_search_returns_nearest_first_with_decoded_types(db_session):
     _add(db_session, "osm:node/test-2", "Farther Park", [LocationType.PARK], dlat=0.04)
-    _add(db_session, "osm:node/test-1", "Closer Park", [LocationType.PARK, LocationType.BEACH], dlat=0.01)
+    _add(
+        db_session,
+        "osm:node/test-1",
+        "Closer Park",
+        [LocationType.PARK, LocationType.BEACH],
+        dlat=0.01,
+    )
     db_session.commit()
 
     results = _index(db_session).search(LAT, LON, 10.0, [LocationType.PARK])

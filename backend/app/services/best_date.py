@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+
 from zoneinfo import ZoneInfo
 
 from app.schemas.best_date import BestDateRequest, BestDateResponse, BestDay, DayScore, Spot
@@ -68,7 +69,10 @@ def find_best_dates(request: BestDateRequest, now: datetime | None = None) -> Be
 
             score = score_location(event_time, forecast.hourly, request.preferences)
             current = best_by_day.get(on_date)
-            if current is None or score.preference_match_score > current.score.preference_match_score:
+            if (
+                current is None
+                or score.preference_match_score > current.score.preference_match_score
+            ):
                 best_by_day[on_date] = _DayBest(spot, event_time, tz_name, local_now, score)
 
     days = [
@@ -111,7 +115,9 @@ def pick_best_day(days: list[DayScore]) -> DayScore | None:
     if not days:
         return None
     top = max(day.score for day in days)
-    return next(day for day in sorted(days, key=lambda d: d.date) if day.score >= top - TIE_TOLERANCE)
+    return next(
+        day for day in sorted(days, key=lambda d: d.date) if day.score >= top - TIE_TOLERANCE
+    )
 
 
 def _spot_info(spot: LocationRecord | None) -> Spot | None:

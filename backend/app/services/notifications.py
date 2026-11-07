@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+
 import firebase_admin
 from firebase_admin import credentials, messaging
 
 from app.core.config import get_settings
+
 
 class PushNotifier(ABC):
     @abstractmethod

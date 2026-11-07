@@ -6,7 +6,9 @@ from app.schemas.scoring import CloudEffect, ColorProbabilities, ScoringResult, 
 from app.schemas.weather import HourlyForecast
 
 # WMO weather codes (as used by Open-Meteo) that indicate rain, snow, or storms.
-UNSAFE_WEATHER_CODES = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99}
+UNSAFE_WEATHER_CODES = {
+    51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99,
+}
 RAIN_PROBABILITY_ALERT_THRESHOLD = 40.0
 
 

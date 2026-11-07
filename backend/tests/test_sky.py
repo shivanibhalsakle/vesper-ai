@@ -1,9 +1,9 @@
 from datetime import date, datetime
-from zoneinfo import ZoneInfo
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from zoneinfo import ZoneInfo
 
 import app.services.sky as sky_service
 from app.main import app

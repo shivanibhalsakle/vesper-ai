@@ -1,10 +1,8 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
 from app.core.config import get_settings
 from app.db.base import Base
 from app.models.feedback import FeedbackEntry  # noqa: F401 — registers the table on Base
@@ -14,8 +12,8 @@ from app.models.osm_place import OsmLoadedRegion, OsmPlace  # noqa: F401 — reg
 from app.models.place_cache import PlaceSearchCache  # noqa: F401 — registers the table
 from app.models.saved_date import SavedDate  # noqa: F401 — registers the table
 from app.models.saved_profile import SavedProfile  # noqa: F401 — registers the table on Base
-from app.models.user_profile import UserProfile  # noqa: F401 — registers the table
 from app.models.user_preferences import UserPreferences  # noqa: F401 — registers the table
+from app.models.user_profile import UserProfile  # noqa: F401 — registers the table
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

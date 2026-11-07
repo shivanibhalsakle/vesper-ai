@@ -134,7 +134,9 @@ def test_the_search_endpoints_answer_503_while_paused(client, monkeypatch):
 
 
 def test_sky_previews_have_their_own_kill_switch(client, monkeypatch):
-    monkeypatch.setattr("app.api.simulation.get_settings", lambda: _settings(previews_enabled=False))
+    monkeypatch.setattr(
+        "app.api.simulation.get_settings", lambda: _settings(previews_enabled=False)
+    )
 
     response = client.post("/simulate", json=SIMULATION_BODY)
 

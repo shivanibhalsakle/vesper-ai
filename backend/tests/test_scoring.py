@@ -85,7 +85,8 @@ def test_rain_scenario_raises_alert():
     result = score_location(EVENT_TIME, forecast, preferences)
 
     assert result.rain_or_unsafe_alert is not None
-    assert "rain" in result.rain_or_unsafe_alert.lower() or "storm" in result.rain_or_unsafe_alert.lower()
+    alert = result.rain_or_unsafe_alert.lower()
+    assert "rain" in alert or "storm" in alert
 
 
 def test_no_sky_preferences_returns_neutral_match_score():

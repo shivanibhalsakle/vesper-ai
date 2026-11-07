@@ -257,7 +257,10 @@ def _build_overpass_query(lat: float, lon: float, radius_km: float) -> str:
             clauses.append(f'node["{key}"="{value}"]["name"](around:{radius_m},{lat},{lon});')
             clauses.append(f'way["{key}"="{value}"]["name"](around:{radius_m},{lat},{lon});')
     body = "\n  ".join(clauses)
-    return f"[out:json][timeout:{OVERPASS_QUERY_TIMEOUT_SECONDS}];\n(\n  {body}\n);\nout center tags;"
+    return (
+        f"[out:json][timeout:{OVERPASS_QUERY_TIMEOUT_SECONDS}];\n"
+        f"(\n  {body}\n);\nout center tags;"
+    )
 
 
 def _parse_overpass_response(payload: dict) -> list[dict]:
