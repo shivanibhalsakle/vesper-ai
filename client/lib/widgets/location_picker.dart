@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/coverage.dart';
 import '../models/geocode_result.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
@@ -33,6 +34,15 @@ class _LocationPickerState extends State<LocationPicker> {
   bool _searching = false;
   bool _locating = false;
   String? _error;
+  Coverage? _coverage;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiClient.fetchCoverage().then((coverage) {
+      if (mounted) setState(() => _coverage = coverage);
+    });
+  }
 
   @override
   void dispose() {
@@ -95,6 +105,7 @@ class _LocationPickerState extends State<LocationPicker> {
     final theme = Theme.of(context);
     final value = widget.value;
     final results = _results;
+    final coverage = _coverage;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +120,13 @@ class _LocationPickerState extends State<LocationPicker> {
                 : Text('${value.lat.toStringAsFixed(4)}, ${value.lon.toStringAsFixed(4)}'),
           ),
         ),
+        if (coverage != null && coverage.regions.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _CoverageNote(
+            coverage: coverage,
+            outside: value != null && coverage.covers(value.lat, value.lon) == false,
+          ),
+        ],
         const SizedBox(height: 12),
         TextField(
           controller: _searchController,
@@ -165,12 +183,59 @@ class _LocationPickerState extends State<LocationPicker> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.location_on_outlined),
                 title: Text(result.label),
+                subtitle: coverage?.covers(result.lat, result.lon) == false
+                    ? const Text('Outside our current coverage')
+                    : null,
                 onTap: () => _select(result),
               ),
           // Required by Geoapify's free-plan terms.
           Text('Powered by Geoapify', style: theme.textTheme.bodySmall),
         ],
       ],
+    );
+  }
+}
+
+/// Where Vesper works today. A quiet caption normally; a clearer notice when
+/// the chosen place is outside it (the search itself would be refused).
+class _CoverageNote extends StatelessWidget {
+  final Coverage coverage;
+  final bool outside;
+
+  const _CoverageNote({required this.coverage, required this.outside});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (outside) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 20, color: theme.colorScheme.onTertiaryContainer),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "Vesper doesn't cover this area yet. "
+                'It currently works in ${coverage.summary}, with more on the way.',
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: theme.colorScheme.onTertiaryContainer),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Text(
+      'Currently available in ${coverage.summary}, with more on the way.',
+      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
     );
   }
 }

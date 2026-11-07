@@ -4,6 +4,7 @@ import '../models/trip_window.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/best_date.dart';
+import '../models/coverage.dart';
 import '../models/feedback.dart';
 import '../models/geocode_result.dart';
 import '../models/location_type.dart';
@@ -77,6 +78,33 @@ class ApiClient {
     }
 
     return SimulationResponse.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  static Coverage? _coverage;
+  static DateTime? _coverageFetchedAt;
+
+  /// Where the backend has place data. Public endpoint, no sign-in. Remembered
+  /// for ten minutes since it only changes when a new state is loaded; returns
+  /// null (never throws) when it can't be fetched, because the note it feeds
+  /// is a nicety, not something worth an error.
+  Future<Coverage?> fetchCoverage() async {
+    final cached = _coverage;
+    final fetchedAt = _coverageFetchedAt;
+    if (cached != null &&
+        fetchedAt != null &&
+        DateTime.now().difference(fetchedAt) < const Duration(minutes: 10)) {
+      return cached;
+    }
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/coverage'));
+      if (response.statusCode != 200) return null;
+      final coverage = Coverage.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+      _coverage = coverage;
+      _coverageFetchedAt = DateTime.now();
+      return coverage;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// How many sky previews the user can still generate today.
