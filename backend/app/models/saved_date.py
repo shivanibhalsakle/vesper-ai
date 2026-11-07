@@ -24,7 +24,7 @@ class SavedDate(Base):
     )
     user_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
 
-    event_date: Mapped[date_type] = mapped_column(Date, nullable=False)
+    event_date: Mapped[date_type] = mapped_column(Date, nullable=False, index=True)
     event: Mapped[str] = mapped_column(String, nullable=False)
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lon: Mapped[float] = mapped_column(Float, nullable=False)

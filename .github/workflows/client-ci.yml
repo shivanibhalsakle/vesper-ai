@@ -1,0 +1,50 @@
+name: Client checks
+
+# Static analysis and widget tests for the Flutter app, on every push to main
+# and every pull request that touches the client. Needs no secrets: the Firebase
+# config in the repo is the public client config.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "client/**"
+      - ".github/workflows/client-ci.yml"
+  pull_request:
+    paths:
+      - "client/**"
+      - ".github/workflows/client-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same Flutter version as development (flutter --version), so CI and a
+      # laptop agree. Change it here when you upgrade Flutter locally.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test

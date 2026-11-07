@@ -19,7 +19,7 @@ class ImageGenerationUsage(Base):
     __tablename__ = "image_generation_usage"
 
     user_id: Mapped[str] = mapped_column(String, primary_key=True)
-    usage_date: Mapped[date_type] = mapped_column(Date, primary_key=True)
+    usage_date: Mapped[date_type] = mapped_column(Date, primary_key=True, index=True)
     count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=_utcnow, onupdate=_utcnow, nullable=False
