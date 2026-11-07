@@ -19,6 +19,7 @@ class PreviewStorage(Protocol):
     def upload(self, path: str, data: bytes, content_type: str) -> None: ...
     def signed_url(self, path: str) -> str: ...
     def delete(self, path: str) -> None: ...
+    def delete_prefix(self, prefix: str) -> None: ...
 
 
 class FirebasePreviewStorage:
@@ -44,6 +45,11 @@ class FirebasePreviewStorage:
 
     def delete(self, path: str) -> None:
         self._bucket.blob(path).delete()
+
+    def delete_prefix(self, prefix: str) -> None:
+        """Every file under a folder, e.g. "previews/<uid>/"."""
+        for blob in self._bucket.list_blobs(prefix=prefix):
+            blob.delete()
 
 
 def get_default_storage() -> PreviewStorage | None:
