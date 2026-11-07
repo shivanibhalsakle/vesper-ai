@@ -17,7 +17,16 @@ from app.api.simulation import router as simulation_router
 from app.api.trip_window import router as trip_window_router
 from app.core.config import get_settings
 
-app = FastAPI(title="Vesper API")
+def docs_settings(environment: str) -> dict[str, None]:
+    """The interactive API docs are a free map of every endpoint, so they're
+    only served outside production.
+    """
+    if environment == "production":
+        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    return {}
+
+
+app = FastAPI(title="Vesper API", **docs_settings(get_settings().environment))
 
 app.add_middleware(
     CORSMiddleware,

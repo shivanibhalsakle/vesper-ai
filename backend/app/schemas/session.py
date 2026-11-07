@@ -15,8 +15,8 @@ class SunEvent(str, Enum):
 
 
 class SessionRequest(BaseModel):
-    lat: float
-    lon: float
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
     event: SunEvent
     date: date_type
     radius_km: float = Field(10.0, gt=0, le=100)
@@ -25,7 +25,7 @@ class SessionRequest(BaseModel):
     # IANA timezone name for the queried location. Full timezone
     # auto-detection from lat/lon is a later refinement (needs an
     # additional lookup library); the client supplies it for now.
-    tz_name: str = "auto"
+    tz_name: str = Field("auto", max_length=64)
 
 
 class LocationResult(BaseModel):

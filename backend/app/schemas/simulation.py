@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.location import LocationType
 from app.schemas.scoring import ColorProbabilities
@@ -17,12 +17,13 @@ class SimulationRequest(BaseModel):
     session state needed to request a preview for the location the user picked.
     """
 
-    location_name: str
+    # Both strings end up inside the image prompt, so they're kept short.
+    location_name: str = Field(..., min_length=1, max_length=120)
     # None for a place picked on the map, which has no spot type; the prompt
     # then uses a generic viewpoint foreground.
     location_type: LocationType | None = None
     event: SunEvent
-    cloud_cover_summary: str
+    cloud_cover_summary: str = Field(..., max_length=80)
     visibility_likelihood: float
     color_probabilities: ColorProbabilities
 

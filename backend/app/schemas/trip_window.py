@@ -13,15 +13,15 @@ MAX_TRIP_WINDOW_DAYS = 16
 
 
 class TripWindowRequest(BaseModel):
-    lat: float
-    lon: float
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
     event: SunEvent
     start_date: date_type
     end_date: date_type
     radius_km: float = Field(10.0, gt=0, le=100)
     place_types: list[LocationType]
     preferences: PreferenceProfile = PreferenceProfile()
-    tz_name: str = "auto"
+    tz_name: str = Field("auto", max_length=64)
 
     @model_validator(mode="after")
     def _validate_date_range(self) -> "TripWindowRequest":
