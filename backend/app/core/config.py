@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # with a "not covered yet" message. Set true to let them try the public
     # Overpass service instead, which is slow and unreliable.
     overpass_outside_coverage: bool = False
+    # Kill switches for the features that spend money. Set to false on Render
+    # (no redeploy of code needed) to pause them if costs or abuse spike.
+    searches_enabled: bool = True
+    previews_enabled: bool = True
     # Shared secret for the /internal/* endpoints (e.g. the daily
     # notification rescore), called by a scheduled GitHub Actions workflow
     # rather than a Celery beat process — see app/api/internal.py.

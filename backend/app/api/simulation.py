@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user_id
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.simulation import (
     PreviewRecord,
@@ -23,6 +24,11 @@ def create_simulation(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> SimulationResponse:
+    if not get_settings().previews_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="Sky previews are paused for a little while. Please try again later.",
+        )
     try:
         return generate_simulation(request, user_id=user_id, db=db)
     except ImageLimitExceeded as exc:

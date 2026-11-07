@@ -5,6 +5,7 @@ provider) for sun times, never silently fall back to UTC.
 
 from datetime import datetime
 
+import pytest
 from fastapi.testclient import TestClient
 
 import app.api.session as session_module
@@ -16,6 +17,7 @@ from app.schemas.weather import HourlyForecast, WeatherForecast
 from app.services.timezones import resolve_timezone
 
 client = TestClient(app)
+pytestmark = pytest.mark.usefixtures("signed_in")
 
 LOS_ANGELES = LocationRecord(
     id="loc-la",

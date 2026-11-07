@@ -14,6 +14,38 @@ class UnknownCoverage:
         return None
 
 
+class InMemoryCache:
+    def __init__(self):
+        self.counts: dict[str, int] = {}
+
+    def get(self, key):
+        return None
+
+    def set(self, key, value, ttl_seconds):
+        pass
+
+    def incr(self, key, ttl_seconds):
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key]
+
+
+@pytest.fixture(autouse=True)
+def fresh_search_budget(monkeypatch):
+    """Search budgets are counted in Redis, which outlives a test run; each
+    test gets empty in-memory counters instead, so none depends on another.
+    """
+    counters = InMemoryCache()
+    monkeypatch.setattr("app.services.request_limits.RedisCache", lambda: counters)
+
+
+@pytest.fixture()
+def signed_in():
+    """For test files that make their own TestClient: stand in for sign-in."""
+    app.dependency_overrides[get_current_user_id] = lambda: TEST_USER_ID
+    yield
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture(autouse=True)
 def unknown_coverage(monkeypatch):
     """Place lookups don't depend on which regions the dev database has loaded;

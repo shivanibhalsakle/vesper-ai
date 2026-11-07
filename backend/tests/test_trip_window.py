@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 import app.api.trip_window as tw_api_module
@@ -11,6 +12,7 @@ from app.schemas.weather import HourlyForecast, WeatherForecast
 from app.services.places import PlaceDataUnavailable
 
 client = TestClient(app)
+pytestmark = pytest.mark.usefixtures("signed_in")
 
 CANDIDATE = LocationRecord(
     id="loc-1",

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 import app.api.session as session_module
@@ -10,6 +11,7 @@ from app.schemas.weather import HourlyForecast, WeatherForecast
 from app.services.places import PlaceDataUnavailable
 
 client = TestClient(app)
+pytestmark = pytest.mark.usefixtures("signed_in")
 
 CANDIDATES = [
     LocationRecord(

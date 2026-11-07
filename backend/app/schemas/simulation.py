@@ -1,6 +1,7 @@
+import unicodedata
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.location import LocationType
 from app.schemas.scoring import ColorProbabilities
@@ -10,6 +11,25 @@ DISCLAIMER = (
     "This is an AI-generated illustrative representation of expected sky "
     "conditions, not a guaranteed photograph of the future."
 )
+
+
+_NAME_PUNCTUATION = set(" .,'’&()/:#-")
+
+
+def clean_prompt_text(text: str) -> str:
+    """Reduces text that goes into an image prompt to plain place-name
+    characters: letters and digits in any script, and a little punctuation.
+    Line breaks, quotes, brackets, symbols and emoji are dropped, so a name
+    can't smuggle its own instructions or formatting into the prompt.
+    """
+    kept = []
+    for char in unicodedata.normalize("NFKC", text):
+        category = unicodedata.category(char)
+        if char.isspace():
+            kept.append(" ")
+        elif char in _NAME_PUNCTUATION or category[0] in "LNM" or category == "Pd":
+            kept.append(char)
+    return " ".join("".join(kept).split())
 
 
 class SimulationRequest(BaseModel):
@@ -26,6 +46,14 @@ class SimulationRequest(BaseModel):
     cloud_cover_summary: str = Field(..., max_length=80)
     visibility_likelihood: float
     color_probabilities: ColorProbabilities
+
+    @field_validator("location_name", "cloud_cover_summary")
+    @classmethod
+    def _plain_text_only(cls, value: str) -> str:
+        cleaned = clean_prompt_text(value)
+        if not cleaned:
+            raise ValueError("must contain letters or numbers")
+        return cleaned
 
 
 class SimulationResponse(BaseModel):

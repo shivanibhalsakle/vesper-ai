@@ -4,6 +4,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.coverage import outside_coverage_error
+from app.api.limits import check_search_budget
 from app.core.auth import get_current_user_id
 from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.best_date import BestDateRequest, BestDateResponse
@@ -17,11 +18,12 @@ router = APIRouter(tags=["best-date"])
 
 @router.post("/best-date", response_model=BestDateResponse)
 def best_date(
-    request: BestDateRequest, _user_id: str = Depends(get_current_user_id)
+    request: BestDateRequest, user_id: str = Depends(get_current_user_id)
 ) -> BestDateResponse:
     """Scores each of the next few days against the user's sky preferences
     and returns the earliest best one, with that day's full sky details.
     """
+    check_search_budget("best-date", user_id)
     try:
         return find_best_dates(request)
     except OutsideCoverage:

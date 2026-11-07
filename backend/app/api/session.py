@@ -2,9 +2,11 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.coverage import outside_coverage_error
+from app.api.limits import check_search_budget
+from app.core.auth import get_current_user_id
 from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.session import LocationResult, SessionRequest, SessionResponse, SunEvent
 from app.services.astronomy import get_sun_events
@@ -26,7 +28,10 @@ TOP_N_RESULTS = 5
 
 
 @router.post("/session", response_model=SessionResponse)
-def create_session(request: SessionRequest) -> SessionResponse:
+def create_session(
+    request: SessionRequest, user_id: str = Depends(get_current_user_id)
+) -> SessionResponse:
+    check_search_budget("session", user_id)
     try:
         candidates = find_candidate_locations(
             request.lat, request.lon, request.radius_km, request.place_types

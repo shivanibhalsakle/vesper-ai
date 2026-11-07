@@ -1,9 +1,11 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.coverage import outside_coverage_error
+from app.api.limits import check_search_budget
+from app.core.auth import get_current_user_id
 from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.trip_window import TripWindowRequest, TripWindowResponse, TripWindowResult
 from app.services.explanation import generate_explanation
@@ -16,7 +18,10 @@ router = APIRouter(tags=["trip-window"])
 
 
 @router.post("/trip-window", response_model=TripWindowResponse)
-def create_trip_window(request: TripWindowRequest) -> TripWindowResponse:
+def create_trip_window(
+    request: TripWindowRequest, user_id: str = Depends(get_current_user_id)
+) -> TripWindowResponse:
+    check_search_budget("trip-window", user_id)
     days_considered = (request.end_date - request.start_date).days + 1
 
     try:
