@@ -41,7 +41,7 @@ class ApiClient {
   Future<SessionResponse> fetchSession(SessionRequest request) async {
     final response = await http.post(
       Uri.parse('$baseUrl/session'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _authHeaders(),
       body: jsonEncode(request.toJson()),
     );
 
@@ -55,7 +55,7 @@ class ApiClient {
   Future<TripWindowResponse> fetchTripWindow(TripWindowRequest request) async {
   final response = await http.post(
     Uri.parse('$baseUrl/trip-window'),
-    headers: {'Content-Type': 'application/json'},
+    headers: await _authHeaders(),
     body: jsonEncode(request.toJson()),
   );
 
