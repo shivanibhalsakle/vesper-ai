@@ -148,6 +148,19 @@ class ApiClient {
     }
   }
 
+  /// Permanently deletes the signed-in user's account and all their data on
+  /// the server, sign-in included. The caller signs out locally afterwards.
+  Future<void> deleteAccount() async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/me'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 204) {
+      throw ApiException(_errorMessage(response));
+    }
+  }
+
   // The backend identifies the user from this Firebase ID token — the app
   // never sends a user id itself. getIdToken() refreshes expired tokens.
   Future<Map<String, String>> _authHeaders() async {

@@ -48,6 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   String? _loadError;
   bool _saving = false;
+  bool _deleting = false;
   String? _nameError;
   String? _phoneError;
 
@@ -268,6 +269,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     navigator.popUntil((route) => route.isFirst);
   }
 
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+          title: const Text('Delete your account?'),
+          content: const Text(
+            'This permanently deletes your profile, preferences, saved dates and '
+            'searches, feedback photos, sky previews and your sign-in. '
+            "It can't be undone.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep my account'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete everything'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    final navigator = Navigator.of(context);
+    setState(() => _deleting = true);
+    try {
+      await _apiClient.deleteAccount();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      _toast('Could not delete your account: $e');
+      return;
+    }
+    // The server has removed the sign-in; clear it from this device too. If
+    // that fails the dead session is rejected on the next request anyway.
+    try {
+      await (widget.onSignOut ?? AuthService().signOut)();
+    } catch (_) {}
+    navigator.popUntil((route) => route.isFirst);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -408,6 +458,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             leading: const Icon(Icons.logout),
             title: const Text('Sign out'),
             onTap: _signOut,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            enabled: !_deleting,
+            leading: Icon(Icons.delete_forever_outlined, color: theme.colorScheme.error),
+            title: Text('Delete account', style: TextStyle(color: theme.colorScheme.error)),
+            subtitle: const Text('Permanently remove your account and all your data'),
+            trailing: _deleting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
+            onTap: _deleteAccount,
           ),
           const Divider(height: 40),
           Center(
