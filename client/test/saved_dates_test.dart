@@ -115,7 +115,9 @@ void main() {
 
       expect(find.textContaining('No saved dates yet'), findsOneWidget);
       expect(find.text('Saved searches'), findsOneWidget);
-      expect(find.text('Photos'), findsOneWidget);
+      // The upcoming photo sharing is announced on Profile, not as a dead tile here.
+      expect(find.text('Photos'), findsNothing);
+      expect(find.text('Coming soon'), findsNothing);
     });
 
     testWidgets('splits upcoming and past dates', (tester) async {

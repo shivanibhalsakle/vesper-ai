@@ -243,13 +243,6 @@ class _SavedScreenState extends State<SavedScreen> {
             MaterialPageRoute(builder: (_) => const SavedProfilesScreen()),
           ),
         ),
-        const ListTile(
-          contentPadding: EdgeInsets.zero,
-          enabled: false,
-          leading: Icon(Icons.photo_library_outlined),
-          title: Text('Photos'),
-          subtitle: Text('Coming soon'),
-        ),
       ],
     );
   }

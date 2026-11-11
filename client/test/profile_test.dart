@@ -110,6 +110,17 @@ void main() {
       expect(find.byKey(const Key('rate-5')), findsOneWidget);
     });
 
+    testWidgets('lists what is coming next instead of a disabled feature tile', (tester) async {
+      final api = _FakeApiClient(stored: const UserProfile(displayName: 'S'));
+      await _pump(tester, ProfileScreen(account: _account, apiClient: api, photos: _FakePhotos()));
+
+      expect(find.text("What's coming next?"), findsOneWidget);
+      expect(find.text('Paid subscription for 30+ sky previews per month'), findsOneWidget);
+      expect(find.text('Connect, chat and share photos with the community'), findsOneWidget);
+      expect(find.text('Share your sky photos'), findsNothing);
+      expect(find.text('Coming soon'), findsNothing);
+    });
+
     testWidgets('rating stars fill up to the tapped one', (tester) async {
       final api = _FakeApiClient(stored: const UserProfile(displayName: 'S'));
       await _pump(tester, ProfileScreen(account: _account, apiClient: api, photos: _FakePhotos()));
