@@ -70,7 +70,7 @@ class OpenAIImageProvider(ImageGenProvider):
             model="gpt-image-2",
             prompt=prompt,
             size="1024x1024",
-            quality="medium",
+            quality=get_settings().image_quality,
         )
         b64_data = result.data[0].b64_json
         return f"data:image/png;base64,{b64_data}"

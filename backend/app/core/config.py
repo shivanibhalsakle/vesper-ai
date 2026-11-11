@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -34,6 +35,13 @@ class Settings(BaseSettings):
     # (no redeploy of code needed) to pause them if costs or abuse spike.
     searches_enabled: bool = True
     previews_enabled: bool = True
+    # Sky previews are the costliest feature (an image per preview). This caps
+    # how many are generated per day across all users, whatever the per-user
+    # limit says; change it on Render without a code change.
+    preview_global_daily_limit: int = 50
+    # OpenAI image quality: "low" costs roughly a tenth of "medium". See
+    # scripts/compare_image_quality.py to look at the difference.
+    image_quality: Literal["low", "medium", "high"] = "medium"
     # Shared secret for the /internal/* endpoints (e.g. the daily
     # notification rescore), called by a scheduled GitHub Actions workflow
     # rather than a Celery beat process — see app/api/internal.py.

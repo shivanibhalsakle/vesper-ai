@@ -3,13 +3,14 @@ from datetime import date
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.image_usage import ImageGenerationUsage
 
-# Per-user cap bounds any one user's cost exposure. The global cap is a
-# backstop in case the per-user check has a bug or is bypassed somehow — it
-# caps total images/day across every user regardless of who's asking.
+# Per-user cap bounds any one user's cost exposure. The global cap (the
+# PREVIEW_GLOBAL_DAILY_LIMIT setting) is a backstop in case the per-user check
+# has a bug or is bypassed somehow — it caps total images/day across every
+# user regardless of who's asking.
 DAILY_LIMIT_PER_USER = 5
-GLOBAL_DAILY_LIMIT = 200
 
 
 class ImageLimitExceeded(Exception):
@@ -28,7 +29,7 @@ def ensure_within_daily_limit(db: Session, user_id: str, on_date: date | None = 
         .filter(ImageGenerationUsage.usage_date == on_date)
         .scalar()
     )
-    if global_total >= GLOBAL_DAILY_LIMIT:
+    if global_total >= get_settings().preview_global_daily_limit:
         raise ImageLimitExceeded(
             "Vesper has hit its daily sky-preview limit across all users. "
             "Please try again tomorrow."

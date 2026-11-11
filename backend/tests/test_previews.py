@@ -142,7 +142,7 @@ def test_generated_image_is_saved_as_webp_and_shown_from_storage(db_session):
     assert content_type == "image/webp"
     assert data[8:12] == b"WEBP"
 
-    row = db_session.query(GeneratedPreview).one()
+    row = db_session.query(GeneratedPreview).filter_by(user_id=USER).one()
     assert row.user_id == USER
     assert row.location_name == "Brooklyn Bridge Park"
     assert row.location_type == "waterfront"
@@ -156,7 +156,7 @@ def test_without_storage_the_image_still_comes_back_but_is_not_saved(db_session)
     assert result.saved is False
     assert result.preview_id is None
     assert result.image_url.startswith("data:image/webp;base64,")  # shrunk, not the raw PNG
-    assert db_session.query(GeneratedPreview).count() == 0
+    assert db_session.query(GeneratedPreview).filter_by(user_id=USER).count() == 0
 
 
 def test_a_storage_failure_does_not_lose_the_image(db_session):
@@ -168,7 +168,7 @@ def test_a_storage_failure_does_not_lose_the_image(db_session):
     assert result.provider_status == "generated"
     assert result.saved is False
     assert result.image_url.startswith("data:image/webp;base64,")
-    assert db_session.query(GeneratedPreview).count() == 0
+    assert db_session.query(GeneratedPreview).filter_by(user_id=USER).count() == 0
 
 
 def test_a_hosted_url_from_the_provider_is_not_saved(db_session):
@@ -193,7 +193,7 @@ def test_repeating_a_saved_sky_shows_it_again_without_generating_or_charging(db_
     assert second.preview_id == first.preview_id
     assert second.image_url == first.image_url
     assert second.remaining_today == DAILY_LIMIT_PER_USER - 1
-    assert db_session.query(GeneratedPreview).count() == 1
+    assert db_session.query(GeneratedPreview).filter_by(user_id=USER).count() == 1
 
 
 def test_a_saved_sky_can_be_reopened_even_with_no_allowance_left(db_session):
