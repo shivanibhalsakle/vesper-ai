@@ -89,10 +89,19 @@ def fake_generate_explanation(location, score, preferences, client=None):
     return f"Fake explanation for {location.name}"
 
 
+def fake_generate_comparative_explanations(places, preferences, client=None):
+    return {place.id: f"Fake explanation for {place.name}" for place, _ in places}
+
+
 def _patch_network(monkeypatch):
     monkeypatch.setattr(session_module, "find_candidate_locations", fake_find_candidate_locations)
     monkeypatch.setattr(session_module, "fetch_hourly_forecast", fake_fetch_hourly_forecast)
     monkeypatch.setattr(session_module, "generate_explanation", fake_generate_explanation)
+    monkeypatch.setattr(
+        session_module,
+        "generate_comparative_explanations",
+        fake_generate_comparative_explanations,
+    )
 
 
 def _request_body(**overrides):
@@ -168,6 +177,11 @@ def test_session_caps_results_at_five(monkeypatch):
     )
     monkeypatch.setattr(session_module, "fetch_hourly_forecast", fake_fetch_hourly_forecast)
     monkeypatch.setattr(session_module, "generate_explanation", fake_generate_explanation)
+    monkeypatch.setattr(
+        session_module,
+        "generate_comparative_explanations",
+        fake_generate_comparative_explanations,
+    )
 
     response = client.post("/session", json=_request_body())
 
@@ -198,16 +212,72 @@ def test_session_populates_explanation_for_returned_locations_only(monkeypatch):
 def test_session_explanation_failure_does_not_break_the_request(monkeypatch):
     _patch_network(monkeypatch)
 
-    def failing_explanation(location, score, preferences, client=None):
+    def failing_explanation(*args, **kwargs):
         raise RuntimeError("Claude API unavailable")
 
     monkeypatch.setattr(session_module, "generate_explanation", failing_explanation)
+    monkeypatch.setattr(session_module, "generate_comparative_explanations", failing_explanation)
 
     response = client.post("/session", json=_request_body())
     body = response.json()
 
     assert response.status_code == 200
     assert all(r["explanation"] is None for r in body["recommendations"])
+
+
+def test_session_writes_all_the_notes_in_one_combined_request(monkeypatch):
+    _patch_network(monkeypatch)
+    combined_calls = []
+    single_calls = []
+
+    def counting_combined(places, preferences, client=None):
+        combined_calls.append([place.id for place, _ in places])
+        return fake_generate_comparative_explanations(places, preferences)
+
+    def counting_single(location, score, preferences, client=None):
+        single_calls.append(location.id)
+        return "single"
+
+    monkeypatch.setattr(session_module, "generate_comparative_explanations", counting_combined)
+    monkeypatch.setattr(session_module, "generate_explanation", counting_single)
+
+    response = client.post("/session", json=_request_body())
+
+    assert len(combined_calls) == 1
+    assert len(combined_calls[0]) == len(response.json()["recommendations"])
+    assert single_calls == []
+
+
+def test_session_falls_back_to_one_request_per_place_when_the_combined_one_fails(monkeypatch):
+    _patch_network(monkeypatch)
+
+    def unusable(places, preferences, client=None):
+        raise ValueError("notes don't match the places asked about")
+
+    monkeypatch.setattr(session_module, "generate_comparative_explanations", unusable)
+
+    response = client.post("/session", json=_request_body())
+
+    assert response.status_code == 200
+    for result in response.json()["recommendations"]:
+        assert result["explanation"] == f"Fake explanation for {result['name']}"
+
+
+def test_session_with_a_single_place_does_not_use_the_combined_request(monkeypatch):
+    _patch_network(monkeypatch)
+    monkeypatch.setattr(
+        session_module, "find_candidate_locations", lambda *a, **k: CANDIDATES[:1]
+    )
+
+    def must_not_run(*args, **kwargs):
+        raise AssertionError("combined request used for a single place")
+
+    monkeypatch.setattr(session_module, "generate_comparative_explanations", must_not_run)
+
+    response = client.post("/session", json=_request_body())
+
+    [only] = response.json()["recommendations"]
+    assert only["explanation"] == f"Fake explanation for {only['name']}"
 
 
 def test_session_returns_503_when_weather_provider_is_down(monkeypatch):

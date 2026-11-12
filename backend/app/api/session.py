@@ -10,7 +10,7 @@ from app.core.auth import get_current_user_id
 from app.core.diagnostics import describe_error, describe_place_error
 from app.schemas.session import LocationResult, SessionRequest, SessionResponse, SunEvent
 from app.services.astronomy import get_sun_events
-from app.services.explanation import generate_explanation
+from app.services.explanation import generate_comparative_explanations, generate_explanation
 from app.services.places import OutsideCoverage, PlaceDataUnavailable, find_candidate_locations
 from app.services.scoring import score_location
 from app.services.timezones import resolve_timezone
@@ -74,17 +74,7 @@ def create_session(
     scored.sort(key=lambda item: item[2].preference_match_score, reverse=True)
     top_scored = scored[:TOP_N_RESULTS]
 
-    # Explanation Generator is an external LLM call — only run it for the
-    # locations we're actually returning, not every scored candidate. These
-    # are independent calls, so running them in a thread pool means the
-    # total wait is roughly one call's latency instead of TOP_N_RESULTS's.
-    with ThreadPoolExecutor(max_workers=len(top_scored) or 1) as executor:
-        explanations = list(
-            executor.map(
-                lambda item: _safe_explanation(item[0], item[2], request.preferences),
-                top_scored,
-            )
-        )
+    explanations = _explanations(top_scored, request.preferences)
 
     results = []
     for (candidate, event_time, score), explanation in zip(top_scored, explanations):
@@ -110,6 +100,36 @@ def create_session(
         )
 
     return SessionResponse(recommendations=results)
+
+
+def _explanations(top_scored, preferences) -> list[str | None]:
+    """A short note per returned place. The Explanation Generator is an external
+    LLM call, so it only runs for the places we're actually returning.
+
+    With several places it's one request that sees them all, so the notes can
+    say what sets each apart instead of repeating each other. If that fails or
+    returns something unusable, it falls back to one independent request per
+    place, run in a thread pool so the wait is about one call's latency.
+    """
+    if len(top_scored) > 1:
+        try:
+            notes = generate_comparative_explanations(
+                [(candidate, score) for candidate, _, score in top_scored], preferences
+            )
+            return [notes[candidate.id] for candidate, _, _ in top_scored]
+        except Exception as exc:
+            logger.warning(
+                "Combined explanations failed (%s); using one request per place",
+                describe_error(exc),
+            )
+
+    with ThreadPoolExecutor(max_workers=len(top_scored) or 1) as executor:
+        return list(
+            executor.map(
+                lambda item: _safe_explanation(item[0], item[2], preferences),
+                top_scored,
+            )
+        )
 
 
 def _safe_explanation(candidate, score, preferences) -> str | None:
