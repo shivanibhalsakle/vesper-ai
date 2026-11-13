@@ -13,6 +13,8 @@ from app.core.config import get_settings
 # viewing session.
 SIGNED_URL_TTL = timedelta(hours=1)
 WEBP_QUALITY = 82
+THUMBNAIL_PIXELS = 384
+THUMBNAIL_QUALITY = 75
 
 
 class PreviewStorage(Protocol):
@@ -96,3 +98,16 @@ def shrink_data_uri(image_url: str) -> str:
     except Exception:
         return image_url
     return "data:image/webp;base64," + base64.b64encode(webp).decode()
+
+
+def make_thumbnail(image_bytes: bytes) -> bytes:
+    """A small WebP of the image for grids: about a tenth of the full size, so
+    opening a collection of previews doesn't download a dozen full pictures.
+    """
+    with Image.open(io.BytesIO(image_bytes)) as image:
+        image = image.convert("RGB")
+        image.thumbnail((THUMBNAIL_PIXELS, THUMBNAIL_PIXELS))
+        out = io.BytesIO()
+        image.save(out, format="WEBP", quality=THUMBNAIL_QUALITY, method=4)
+        return out.getvalue()
+

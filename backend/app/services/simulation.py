@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.schemas.location import LocationType
 from app.schemas.scoring import ColorProbabilities
 from app.schemas.session import SunEvent
-from app.schemas.simulation import SimulationRequest, SimulationResponse
+from app.schemas.simulation import SimulationRequest, SimulationResponse, clean_prompt_text
 from app.services.cache import Cache, RedisCache
 from app.services.image_limits import ensure_within_daily_limit, record_usage, remaining_today
 from app.services.preview_storage import (
@@ -20,6 +20,7 @@ from app.services.preview_storage import (
     shrink_data_uri,
 )
 from app.services.previews import find_by_prompt, save_preview
+from app.services.shared_previews import resolve_place, share_preview
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +147,7 @@ def generate_simulation(
     cache = cache if cache is not None else RedisCache()
     if storage is _DEFAULT_STORAGE:
         storage = get_default_storage()
+    request = _with_trusted_place(db, request)
     prompt = build_simulation_prompt(request)
     prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
     cache_key = f"simulation:{prompt_hash}"
@@ -215,6 +217,37 @@ def generate_simulation(
     )
 
 
+def _with_trusted_place(db: Session, request: SimulationRequest) -> SimulationRequest:
+    """For a place we know, use our own name and type for it instead of what
+    the app sent, so what other users later see on a shared preview can't be
+    text someone made up. For anything else (a typed address, the current
+    location) the preview is made as before but never shared.
+    """
+    place = resolve_place(db, request.place_id)
+    name = clean_prompt_text(place.name)[:120] if place else ""
+    if place is None or not name:
+        return request.model_copy(update={"place_id": None})
+    update: dict = {"location_name": name}
+    if place.type:
+        update["location_type"] = LocationType(place.type)
+    return request.model_copy(update=update)
+
+
+def _share(
+    db: Session,
+    storage: PreviewStorage,
+    user_id: str,
+    request: SimulationRequest,
+    prompt_hash: str,
+    image: bytes,
+) -> None:
+    try:
+        share_preview(db, storage, user_id, request, prompt_hash, image)
+    except Exception:
+        logger.warning("Could not add the preview to the shared collection", exc_info=True)
+        db.rollback()
+
+
 def _keep(
     db: Session,
     storage: PreviewStorage | None,
@@ -234,7 +267,10 @@ def _keep(
         return image_url, None  # a hosted URL, nothing we can re-encode
     try:
         row = save_preview(db, storage, user_id, prompt_hash, prompt, request, data)
-        return storage.signed_url(row.storage_path), row.id
+        saved_path, saved_id = row.storage_path, row.id
+        if request.place_id:
+            _share(db, storage, user_id, request, prompt_hash, data)
+        return storage.signed_url(saved_path), saved_id
     except Exception:
         logger.warning("Could not save sky preview for %s", user_id, exc_info=True)
         db.rollback()

@@ -1,5 +1,5 @@
 import unicodedata
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -43,6 +43,12 @@ class SimulationRequest(BaseModel):
     # then uses a generic viewpoint foreground.
     location_type: LocationType | None = None
     event: SunEvent
+    # The known place this is for (the id from the suggested spots), so the
+    # preview can join that place's shared collection. Absent for a searched
+    # address or the current location, which are never shared.
+    place_id: str | None = Field(None, max_length=200)
+    # The day the previewed sky is for.
+    event_date: date | None = None
     cloud_cover_summary: str = Field(..., max_length=80)
     visibility_likelihood: float
     color_probabilities: ColorProbabilities
@@ -84,3 +90,23 @@ class PreviewRecord(BaseModel):
     prompt: str
     disclaimer: str = DISCLAIMER
     created_at: datetime
+
+
+class SharedPreviewRecord(BaseModel):
+    """One preview in a place's shared collection. Nothing here says who made it."""
+
+    id: str
+    image_url: str  # short-lived signed links, fetched fresh on every list
+    thumb_url: str
+    place_name: str
+    event: SunEvent
+    event_date: date | None = None
+    disclaimer: str = DISCLAIMER
+    created_at: datetime
+
+
+class PlacePreviewCount(BaseModel):
+    place_id: str
+    count: int  # previews by other people the user can open for this place
+    popular: bool  # the place has a large number of previews overall
+

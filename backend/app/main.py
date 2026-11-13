@@ -12,6 +12,7 @@ from app.api.places import router as places_router
 from app.api.saved_dates import router as saved_dates_router
 from app.api.saved_profiles import router as saved_profiles_router
 from app.api.session import router as session_router
+from app.api.shared_previews import router as shared_previews_router
 from app.api.simulation import router as simulation_router
 from app.api.sky import router as sky_router
 from app.api.trip_window import router as trip_window_router
@@ -40,6 +41,7 @@ app.include_router(health_router)
 app.include_router(internal_router)
 app.include_router(session_router)
 app.include_router(simulation_router)
+app.include_router(shared_previews_router)
 app.include_router(feedback_router)
 app.include_router(saved_profiles_router)
 app.include_router(trip_window_router)

@@ -55,6 +55,7 @@ def save_preview(
         location_name=request.location_name,
         location_type=request.location_type.value if request.location_type else "",
         event=request.event.value,
+        place_id=request.place_id,
         storage_path=path,
     )
     db.add(row)

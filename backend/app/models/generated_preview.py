@@ -33,6 +33,9 @@ class GeneratedPreview(Base):
     location_name: Mapped[str] = mapped_column(String, nullable=False)
     location_type: Mapped[str] = mapped_column(String, nullable=False)
     event: Mapped[str] = mapped_column(String, nullable=False)
+    # The known place this was made for, if any. Only used to limit how many
+    # previews of one place a single person adds to the shared collection.
+    place_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
     storage_path: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
