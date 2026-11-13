@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
+import '../widgets/polaroid_frame.dart';
 import '../widgets/preview_image.dart';
 import '../widgets/sky_loader.dart';
 import '../widgets/sparkle_burst.dart';
@@ -224,53 +225,20 @@ class _PolaroidState extends State<_Polaroid> with TickerProviderStateMixin {
           );
         }
 
-        final card = Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.brownDark.withValues(alpha: 0.22),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        final card = PolaroidFrame(
+          title: widget.title,
+          captions: [widget.subtitle],
+          photo: Stack(
+            fit: StackFit.passthrough,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: Stack(
-                  fit: StackFit.passthrough,
-                  children: [
-                    photo,
-                    // The "undeveloped" milky wash fades off as it sharpens.
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: ColoredBox(
-                          color: AppColors.white.withValues(alpha: 0.85 * (1 - t)),
-                        ),
-                      ),
-                    ),
-                  ],
+              photo,
+              // The "undeveloped" milky wash fades off as it sharpens.
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ColoredBox(
+                    color: AppColors.white.withValues(alpha: 0.85 * (1 - t)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                widget.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: scriptFont,
-                  fontSize: 24,
-                  color: AppColors.brownDark,
-                ),
-              ),
-              Text(
-                widget.subtitle,
-                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),

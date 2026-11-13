@@ -4,16 +4,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vesper/models/session_request.dart';
 import 'package:vesper/models/shared_preview.dart';
 import 'package:vesper/services/api_client.dart';
+import 'package:vesper/theme/app_theme.dart';
+import 'package:vesper/widgets/polaroid_frame.dart';
+import 'package:vesper/widgets/preview_image.dart';
 import 'package:vesper/widgets/shared_previews_link.dart';
 
 // A 1x1 PNG, so Image.memory has something real to decode.
 const _pixel =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
+// The same picture under a different address, so a test can tell the full-size
+// image from the thumbnail.
+final _fullPixel = _pixel.replaceFirst('image/png;', 'image/png;name=full;');
+
 SharedPreview _preview(String id, {DateTime? eventDate, SunEvent event = SunEvent.sunset}) =>
     SharedPreview(
       id: id,
-      imageUrl: _pixel,
+      imageUrl: _fullPixel,
       thumbUrl: _pixel,
       placeName: 'Test Park',
       event: event,
@@ -118,7 +125,8 @@ void main() {
       expect(api.previewRequests, ['osm:way/1']);
       expect(find.text('Previews of Test Park'), findsOneWidget);
       expect(find.byKey(const Key('shared-preview-a')), findsOneWidget);
-      expect(find.text('Sunset · Wednesday, December 2'), findsOneWidget);
+      expect(find.text('Sunset'), findsOneWidget);
+      expect(find.text('Wednesday, December 2'), findsOneWidget);
     });
   });
 
@@ -160,13 +168,63 @@ void main() {
         ];
       await openSheet(tester, api);
 
-      expect(find.text('Sunrise · Wednesday, December 2'), findsOneWidget);
-      expect(find.text('Sunset · Tuesday, November 3'), findsOneWidget);
+      expect(find.text('Sunrise'), findsOneWidget);
+      expect(find.text('Wednesday, December 2'), findsOneWidget);
+      expect(find.text('Sunset'), findsOneWidget);
+      expect(find.text('Tuesday, November 3'), findsOneWidget);
       final top = tester.getTopLeft(find.byKey(const Key('shared-preview-new')));
       final other = tester.getTopLeft(find.byKey(const Key('shared-preview-old')));
       // Reading order in a two-column grid: same row left to right, then down.
       expect(top.dy < other.dy || (top.dy == other.dy && top.dx < other.dx), isTrue);
       expect(find.textContaining('AI-generated illustrations'), findsOneWidget);
+    });
+
+    testWidgets('each preview is a Polaroid with the place, sunrise or sunset and the day',
+        (tester) async {
+      final api = _Api()..previews = [_preview('a', eventDate: DateTime(2026, 12, 2))];
+      await openSheet(tester, api);
+
+      final tile = find.byKey(const Key('shared-preview-a'));
+      final name = find.descendant(of: tile, matching: find.text('Test Park'));
+      expect(tester.widget<Text>(name).style?.fontFamily, scriptFont);
+      expect(find.descendant(of: tile, matching: find.text('Sunset')), findsOneWidget);
+      expect(
+        find.descendant(of: tile, matching: find.text('Wednesday, December 2')),
+        findsOneWidget,
+      );
+      // The thumbnail is what the grid downloads, not the full picture.
+      final image = tester.widget<PreviewImage>(
+        find.descendant(of: tile, matching: find.byType(PreviewImage)),
+      );
+      expect(image.imageUrl, _pixel);
+    });
+
+    testWidgets('tapping a Polaroid shows it larger, with the full-size picture', (tester) async {
+      final api = _Api()..previews = [_preview('a', eventDate: DateTime(2026, 12, 2))];
+      await openSheet(tester, api);
+
+      await tester.tap(find.byKey(const Key('shared-preview-a')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('shared-preview-detail')), findsOneWidget);
+      final image = tester.widget<PreviewImage>(find.byKey(const Key('shared-preview-image')));
+      expect(image.imageUrl, _fullPixel);
+      expect(find.text('Sunset · Wednesday, December 2'), findsOneWidget);
+      expect(find.text('An AI-generated illustration.'), findsOneWidget);
+      expect(find.text('Made by another Vesper user.'), findsOneWidget);
+    });
+
+    testWidgets('back from the larger view returns to the previews', (tester) async {
+      await openSheet(tester, _Api()..previews = [_preview('a')]);
+      await tester.tap(find.byKey(const Key('shared-preview-a')));
+      await tester.pumpAndSettle();
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('shared-preview-detail')), findsNothing);
+      expect(find.byKey(const Key('shared-previews-sheet')), findsOneWidget);
+      expect(find.byKey(const Key('shared-preview-a')), findsOneWidget);
     });
 
     testWidgets('says so when there is nothing to show', (tester) async {
@@ -197,6 +255,46 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('shared-previews-sheet')), findsNothing);
+    });
+  });
+
+  group('PolaroidFrame', () {
+    testWidgets('writes the title and each caption under the photo', (tester) async {
+      await _pump(
+        tester,
+        const SizedBox(
+          width: 300,
+          child: PolaroidFrame(
+            photo: AspectRatio(aspectRatio: 1, child: ColoredBox(color: Colors.orange)),
+            title: 'Brooklyn Bridge Park',
+            captions: ['Sunset', 'Wednesday, December 2'],
+          ),
+        ),
+      );
+
+      expect(find.text('Brooklyn Bridge Park'), findsOneWidget);
+      expect(find.text('Sunset'), findsOneWidget);
+      expect(find.text('Wednesday, December 2'), findsOneWidget);
+    });
+
+    testWidgets('a compact one fits a small cell however long the writing is', (tester) async {
+      // An overflow would throw and fail the test.
+      await _pump(
+        tester,
+        const SizedBox(
+          width: 150,
+          height: 220,
+          child: PolaroidFrame(
+            compact: true,
+            photo: SizedBox.expand(child: ColoredBox(color: Colors.orange)),
+            title: 'Quaker Parrot Park at the Dust Bowl, Brooklyn',
+            captions: ['Sunrise', 'Wednesday, December 2'],
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Sunrise'), findsOneWidget);
     });
   });
 

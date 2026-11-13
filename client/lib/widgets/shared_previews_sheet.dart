@@ -4,6 +4,8 @@ import '../models/shared_preview.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../utils/haptics.dart';
+import 'polaroid_frame.dart';
 import 'preview_image.dart';
 
 /// Opens the previews other people made for a place, as a sheet rising from
@@ -175,12 +177,12 @@ class _SharedPreviewsSheetState extends State<SharedPreviewsSheet> {
         sliver: SliverGrid.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.82,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 14,
+            childAspectRatio: 0.66,
           ),
           itemCount: _previews.length,
-          itemBuilder: (context, i) => _SharedTile(preview: _previews[i]),
+          itemBuilder: (context, i) => _SharedTile(preview: _previews[i], index: i),
         ),
       ),
       SliverToBoxAdapter(
@@ -198,56 +200,95 @@ class _SharedPreviewsSheetState extends State<SharedPreviewsSheet> {
   }
 }
 
-/// One shared preview: the small picture with what it shows written under it.
+/// One shared preview as a small Polaroid, tilted a little like a photo pinned
+/// to a board. Tap it to see it larger.
 class _SharedTile extends StatelessWidget {
   final SharedPreview preview;
+  final int index;
 
-  const _SharedTile({required this.preview});
+  const _SharedTile({required this.preview, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '${preview.event.label} preview of ${preview.placeName}, '
+          '${formatLongDate(preview.displayDate)}',
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: Key('shared-preview-${preview.id}'),
+        onTap: () {
+          AppHaptics.select();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => SharedPreviewDetailScreen(preview: preview)),
+          );
+        },
+        child: Transform.rotate(
+          angle: index.isEven ? -0.02 : 0.02,
+          child: Hero(
+            tag: 'shared-preview-${preview.id}',
+            child: PolaroidFrame(
+              compact: true,
+              photo: SizedBox.expand(
+                child: PreviewImage(imageUrl: preview.thumbUrl, cacheWidth: 200),
+              ),
+              title: preview.placeName,
+              captions: [preview.event.label, formatLongDate(preview.displayDate)],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One shared preview, large, on its Polaroid with the full-size picture.
+class SharedPreviewDetailScreen extends StatelessWidget {
+  final SharedPreview preview;
+
+  const SharedPreviewDetailScreen({super.key, required this.preview});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final caption = '${preview.event.label} · ${formatLongDate(preview.displayDate)}';
-    return Semantics(
-      label: '${preview.event.label} preview of ${preview.placeName}, $caption',
-      excludeSemantics: true,
-      child: DecoratedBox(
-        key: Key('shared-preview-${preview.id}'),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.brownDark.withValues(alpha: 0.16),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: SizedBox.expand(
-                    child: PreviewImage(imageUrl: preview.thumbUrl, cacheWidth: 200),
+    return Scaffold(
+      appBar: AppBar(title: Text(preview.placeName, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      body: ListView(
+        key: const Key('shared-preview-detail'),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Hero(
+                tag: 'shared-preview-${preview.id}',
+                child: PolaroidFrame(
+                  photo: AspectRatio(
+                    aspectRatio: 1,
+                    child: PreviewImage(
+                      key: const Key('shared-preview-image'),
+                      imageUrl: preview.imageUrl,
+                    ),
                   ),
+                  title: preview.placeName,
+                  captions: ['${preview.event.label} · ${formatLongDate(preview.displayDate)}'],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                preview.placeName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelLarge,
-              ),
-              Text(caption, style: theme.textTheme.bodySmall),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 20),
+          Text(
+            preview.disclaimer,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Made by another Vesper user.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
       ),
     );
   }
