@@ -9,6 +9,7 @@ import '../utils/format.dart';
 import '../widgets/preview_sky_button.dart';
 import '../widgets/rise_in.dart';
 import '../widgets/save_date_button.dart';
+import '../widgets/shared_previews_link.dart';
 import '../widgets/sky_detail_view.dart';
 import '../widgets/week_chart.dart';
 
@@ -114,6 +115,15 @@ class BestDateResultScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (best.spot != null)
+                  RiseIn(
+                    index: 5,
+                    child: SharedPreviewsForPlace(
+                      placeId: best.spot!.locationId,
+                      placeName: best.spot!.name,
+                      apiClient: apiClient ?? ApiClient(),
+                    ),
+                  ),
               ],
             ),
     );

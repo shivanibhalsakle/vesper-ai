@@ -6,6 +6,7 @@ import 'package:vesper/models/location_type.dart';
 import 'package:vesper/models/preference_profile.dart';
 import 'package:vesper/models/session_request.dart';
 import 'package:vesper/models/session_response.dart';
+import 'package:vesper/models/shared_preview.dart';
 import 'package:vesper/models/sky_forecast.dart';
 import 'package:vesper/models/simulation.dart';
 import 'package:vesper/models/user_preferences.dart';
@@ -67,6 +68,16 @@ class _FakeApiClient extends ApiClient {
   Object? spotsError;
   final List<SkyRequest> skyRequests = [];
   final List<SessionRequest> sessionRequests = [];
+
+  // What the server says about other users' previews, by place id.
+  Map<String, PlacePreviewCount> sharedCounts = {};
+  final List<List<String>> sharedCountRequests = [];
+
+  @override
+  Future<Map<String, PlacePreviewCount>> fetchSharedPreviewCounts(List<String> placeIds) async {
+    sharedCountRequests.add(placeIds);
+    return sharedCounts;
+  }
 
   final List<SimulationRequest> simulationRequests = [];
 
@@ -182,6 +193,34 @@ void main() {
     final request = api.simulationRequests.single;
     expect(request.placeId, isNull); // a searched address is never shared
     expect(request.eventDate, isNotNull);
+  });
+
+  testWidgets('A spot with previews from others offers them, and a popular one is labelled',
+      (tester) async {
+    final api = _FakeApiClient()
+      ..stored = const UserPreferences(home: _home)
+      ..sharedCounts = {
+        'osm-1': const PlacePreviewCount(placeId: 'osm-1', count: 4, popular: true),
+      };
+    await _pump(tester, api);
+
+    await tester.tap(find.text("Show today's sky"));
+    await tester.pumpAndSettle();
+
+    expect(api.sharedCountRequests.single, ['osm-1']);
+    expect(find.text('See previews for this location from other users (4)'), findsOneWidget);
+    expect(find.text('Popular place'), findsOneWidget);
+  });
+
+  testWidgets('Spots nobody has previewed look exactly as before', (tester) async {
+    final api = _FakeApiClient()..stored = const UserPreferences(home: _home);
+    await _pump(tester, api);
+
+    await tester.tap(find.text("Show today's sky"));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('See previews for this location'), findsNothing);
+    expect(find.text('Popular place'), findsNothing);
   });
 
   testWidgets('Without sky preferences no match score is requested or shown', (tester) async {

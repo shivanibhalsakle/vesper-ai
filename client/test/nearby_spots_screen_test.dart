@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vesper/models/geocode_result.dart';
 import 'package:vesper/models/location_type.dart';
 import 'package:vesper/models/nearby_spot.dart';
+import 'package:vesper/models/shared_preview.dart';
 import 'package:vesper/models/user_preferences.dart';
 import 'package:vesper/screens/nearby_spots_screen.dart';
 import 'package:vesper/services/api_client.dart';
@@ -13,6 +14,16 @@ class _FakeApiClient extends ApiClient {
   List<NearbySpot> spots = const [];
   Object? spotsError;
   final List<Map<String, Object?>> calls = [];
+
+  // What the server says about other users' previews, by place id.
+  Map<String, PlacePreviewCount> sharedCounts = {};
+  final List<List<String>> sharedCountRequests = [];
+
+  @override
+  Future<Map<String, PlacePreviewCount>> fetchSharedPreviewCounts(List<String> placeIds) async {
+    sharedCountRequests.add(placeIds);
+    return sharedCounts;
+  }
 
   @override
   Future<UserPreferences?> fetchPreferences() async => stored;
@@ -76,6 +87,41 @@ void main() {
     expect(find.text('1 spots nearby'), findsOneWidget);
     expect(find.text('Brighton Beach'), findsOneWidget);
     expect(find.text('Beach · 3.2 km away'), findsOneWidget);
+  });
+
+  testWidgets('A spot with previews from others offers them', (tester) async {
+    final api = _FakeApiClient()
+      ..stored = const UserPreferences(home: _home)
+      ..spots = const [
+        NearbySpot(
+          id: 'osm-1',
+          name: 'Brighton Beach',
+          type: LocationType.beach,
+          lat: 40.57,
+          lon: -73.96,
+          distanceKm: 3.2,
+        ),
+        NearbySpot(
+          id: 'osm-2',
+          name: 'Plain Park',
+          type: LocationType.park,
+          lat: 40.58,
+          lon: -73.97,
+          distanceKm: 4.0,
+        ),
+      ]
+      ..sharedCounts = {
+        'osm-1': const PlacePreviewCount(placeId: 'osm-1', count: 2, popular: false),
+      };
+    await _pump(tester, api);
+
+    await tester.tap(find.text('Find viewing spots'));
+    await tester.pumpAndSettle();
+
+    expect(api.sharedCountRequests.single, ['osm-1', 'osm-2']);
+    // Only the place that has previews gets the link.
+    expect(find.text('See previews for this location from other users (2)'), findsOneWidget);
+    expect(find.textContaining('See previews for this location'), findsOneWidget);
   });
 
   testWidgets('Shows a friendly message when nothing is found', (tester) async {

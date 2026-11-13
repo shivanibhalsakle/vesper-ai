@@ -14,6 +14,7 @@ import '../models/user_profile.dart';
 import '../models/saved_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
+import '../models/shared_preview.dart';
 import '../models/saved_date.dart';
 import '../models/simulation.dart';
 import '../models/sky_forecast.dart';
@@ -135,6 +136,43 @@ class ApiClient {
     return (jsonDecode(response.body) as List)
         .map((item) => SkyPreviewRecord.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Previews other people made for a place, newest first. Anonymous.
+  Future<List<SharedPreview>> fetchSharedPreviews(String placeId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/shared-previews').replace(queryParameters: {'place_id': placeId}),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_errorMessage(response));
+    }
+
+    return (jsonDecode(response.body) as List)
+        .map((item) => SharedPreview.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// For a screenful of places at once: which have previews from others, and
+  /// which are popular. Places with none are missing from the result. Never
+  /// throws: the link and label this feeds are a nicety, not worth an error.
+  Future<Map<String, PlacePreviewCount>> fetchSharedPreviewCounts(List<String> placeIds) async {
+    if (placeIds.isEmpty) return const {};
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/shared-previews/counts')
+            .replace(queryParameters: {'place_ids': placeIds}),
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode != 200) return const {};
+      return {
+        for (final item in jsonDecode(response.body) as List)
+          (item as Map<String, dynamic>)['place_id'] as String: PlacePreviewCount.fromJson(item),
+      };
+    } catch (_) {
+      return const {};
+    }
   }
 
   Future<void> deletePreview(String id) async {

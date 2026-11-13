@@ -5,6 +5,7 @@ import '../models/location_type.dart';
 import '../models/preference_profile.dart';
 import '../models/session_request.dart';
 import '../models/session_response.dart';
+import '../models/shared_preview.dart';
 import '../models/simulation.dart';
 import '../models/sky_forecast.dart';
 import '../services/api_client.dart';
@@ -15,6 +16,7 @@ import '../widgets/preview_sky_button.dart';
 import '../theme/flows.dart';
 import '../widgets/flow_header.dart';
 import '../widgets/rise_in.dart';
+import '../widgets/shared_previews_link.dart';
 import '../widgets/save_date_button.dart';
 import '../widgets/sky_loader.dart';
 import '../widgets/sky_detail_view.dart';
@@ -49,6 +51,8 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
   bool _loadingSpots = false;
   List<LocationResult>? _spots;
   String? _spotsError;
+  // Which of the spots have previews from other users, by place id.
+  Map<String, PlacePreviewCount> _shared = const {};
 
   // Bumped on every search so a slow, outdated response can't overwrite the
   // results of a newer one.
@@ -90,6 +94,7 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
       _skyError = null;
       _spots = null;
       _spotsError = null;
+      _shared = const {};
     });
 
     // The sky is one fast forecast call, the spots need a place search plus
@@ -117,6 +122,15 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
     }
   }
 
+  // A nicety that arrives after the spots: failing just means no link.
+  Future<void> _loadSharedCounts(int searchId, List<LocationResult> spots) async {
+    final counts = await _apiClient.fetchSharedPreviewCounts([
+      for (final spot in spots) spot.locationId,
+    ]);
+    if (!mounted || searchId != _searchId) return;
+    setState(() => _shared = counts);
+  }
+
   Future<void> _loadSpots(int searchId, PickedLocation location, DateTime today) async {
     try {
       final response = await _apiClient.fetchSession(SessionRequest(
@@ -130,6 +144,7 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
       ));
       if (!mounted || searchId != _searchId) return;
       setState(() => _spots = response.recommendations);
+      _loadSharedCounts(searchId, response.recommendations);
     } catch (e) {
       if (!mounted || searchId != _searchId) return;
       setState(() => _spotsError = '$e');
@@ -239,6 +254,7 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
                     showMatch: _preferences.hasSkyPreference,
                     event: _sky?.event ?? _event,
                     date: _searchedOn,
+                    shared: _shared[_spots![i].locationId],
                     apiClient: _apiClient,
                   ),
                 ),
@@ -255,6 +271,7 @@ class _SpotCard extends StatelessWidget {
   final bool showMatch;
   final SunEvent event;
   final DateTime date;
+  final PlacePreviewCount? shared;
   final ApiClient apiClient;
 
   const _SpotCard({
@@ -263,6 +280,7 @@ class _SpotCard extends StatelessWidget {
     required this.showMatch,
     required this.event,
     required this.date,
+    required this.shared,
     required this.apiClient,
   });
 
@@ -342,6 +360,12 @@ class _SpotCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+              SharedPreviewsLink(
+                placeId: spot.locationId,
+                placeName: spot.name,
+                info: shared,
+                apiClient: apiClient,
               ),
             ],
           ),

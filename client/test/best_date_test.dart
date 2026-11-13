@@ -6,6 +6,7 @@ import 'package:vesper/models/geocode_result.dart';
 import 'package:vesper/models/location_type.dart';
 import 'package:vesper/models/preference_profile.dart';
 import 'package:vesper/models/session_request.dart';
+import 'package:vesper/models/shared_preview.dart';
 import 'package:vesper/models/session_response.dart';
 import 'package:vesper/models/sky_forecast.dart';
 import 'package:vesper/models/simulation.dart';
@@ -85,6 +86,16 @@ class _FakeApiClient extends ApiClient {
   Object? bestError;
   final List<BestDateRequest> requests = [];
   final List<UserPreferences> saved = [];
+
+  // What the server says about other users' previews, by place id.
+  Map<String, PlacePreviewCount> sharedCounts = {};
+  final List<List<String>> sharedCountRequests = [];
+
+  @override
+  Future<Map<String, PlacePreviewCount>> fetchSharedPreviewCounts(List<String> placeIds) async {
+    sharedCountRequests.add(placeIds);
+    return sharedCounts;
+  }
 
   final List<SimulationRequest> simulationRequests = [];
 
@@ -169,6 +180,26 @@ void main() {
       final request = api.simulationRequests.single;
       expect(request.placeId, 'osm-1');
       expect(request.eventDate, DateTime(2026, 10, 7));
+    });
+
+    testWidgets('offers the previews other users made for the best spot', (tester) async {
+      final api = _FakeApiClient()
+        ..sharedCounts = {
+          'osm-1': const PlacePreviewCount(placeId: 'osm-1', count: 6, popular: true),
+        };
+      await _pump(
+        tester,
+        BestDateResultScreen(
+          response: _response,
+          preferences: _taste,
+          location: _home,
+          apiClient: api,
+        ),
+      );
+
+      expect(api.sharedCountRequests.single, ['osm-1']);
+      expect(find.text('See previews for this location from other users (6)'), findsOneWidget);
+      expect(find.text('Popular place'), findsOneWidget);
     });
 
     testWidgets('explains itself when nothing could be scored', (tester) async {

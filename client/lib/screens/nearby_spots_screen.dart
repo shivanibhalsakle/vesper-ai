@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../models/geocode_result.dart';
 import '../models/location_type.dart';
 import '../models/nearby_spot.dart';
+import '../models/shared_preview.dart';
 import '../services/api_client.dart';
 import '../theme/flows.dart';
 import '../utils/maps.dart';
 import '../widgets/flow_header.dart';
 import '../widgets/location_picker.dart';
 import '../widgets/rise_in.dart';
+import '../widgets/shared_previews_link.dart';
 import '../widgets/sky_loader.dart';
 
 /// Flow 3: pick a place, see good viewing spots around it.
@@ -29,6 +31,8 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
   List<LocationType> _placeTypes = const [];
 
   List<NearbySpot>? _spots;
+  // Which of the spots have previews from other users, by place id.
+  Map<String, PlacePreviewCount> _shared = const {};
   bool _searching = false;
   String? _error;
 
@@ -60,6 +64,7 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
     setState(() {
       _searching = true;
       _error = null;
+      _shared = const {};
     });
     try {
       final spots = await _apiClient.fetchNearbySpots(
@@ -70,6 +75,7 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
       );
       if (!mounted) return;
       setState(() => _spots = spots);
+      _loadSharedCounts(spots);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -79,6 +85,14 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
     } finally {
       if (mounted) setState(() => _searching = false);
     }
+  }
+
+  // A nicety that arrives after the spots: failing just means no link.
+  Future<void> _loadSharedCounts(List<NearbySpot> spots) async {
+    final counts = await _apiClient.fetchSharedPreviewCounts([for (final spot in spots) spot.id]);
+    // Ignore the answer if the list has been replaced since.
+    if (!mounted || !identical(_spots, spots)) return;
+    setState(() => _shared = counts);
   }
 
   @override
@@ -131,7 +145,14 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
             Text('${spots.length} spots nearby', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             for (var i = 0; i < spots.length; i++)
-              RiseIn(index: i, child: _SpotTile(spot: spots[i])),
+              RiseIn(
+                index: i,
+                child: _SpotTile(
+                  spot: spots[i],
+                  shared: _shared[spots[i].id],
+                  apiClient: _apiClient,
+                ),
+              ),
           ],
         ],
       ),
@@ -141,8 +162,10 @@ class _NearbySpotsScreenState extends State<NearbySpotsScreen> {
 
 class _SpotTile extends StatelessWidget {
   final NearbySpot spot;
+  final PlacePreviewCount? shared;
+  final ApiClient apiClient;
 
-  const _SpotTile({required this.spot});
+  const _SpotTile({required this.spot, required this.shared, required this.apiClient});
 
   IconData get _icon => switch (spot.type) {
         LocationType.beach => Icons.beach_access,
@@ -156,18 +179,32 @@ class _SpotTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        key: Key('spot-${spot.id}'),
-        leading: Icon(_icon),
-        title: Text(spot.name),
-        subtitle: Text('${spot.type.label} · ${spot.distanceKm.toStringAsFixed(1)} km away'),
-        trailing: Icon(Icons.map_outlined, color: Theme.of(context).colorScheme.primary),
-        onTap: () => confirmAndOpenInMaps(
-          context,
-          name: spot.name,
-          lat: spot.lat,
-          lon: spot.lon,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            key: Key('spot-${spot.id}'),
+            leading: Icon(_icon),
+            title: Text(spot.name),
+            subtitle: Text('${spot.type.label} · ${spot.distanceKm.toStringAsFixed(1)} km away'),
+            trailing: Icon(Icons.map_outlined, color: Theme.of(context).colorScheme.primary),
+            onTap: () => confirmAndOpenInMaps(
+              context,
+              name: spot.name,
+              lat: spot.lat,
+              lon: spot.lon,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SharedPreviewsLink(
+              placeId: spot.id,
+              placeName: spot.name,
+              info: shared,
+              apiClient: apiClient,
+            ),
+          ),
+        ],
       ),
     );
   }
