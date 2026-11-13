@@ -39,6 +39,9 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
   List<LocationType> _placeTypes = const [];
   PreferenceProfile _preferences = const PreferenceProfile();
 
+  // The day of the current search: previews are for that day's sky.
+  DateTime _searchedOn = DateTime.now();
+
   bool _loadingSky = false;
   SkyForecast? _sky;
   String? _skyError;
@@ -80,6 +83,7 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
     final searchId = ++_searchId;
     final today = DateTime.now();
     setState(() {
+      _searchedOn = today;
       _loadingSky = true;
       _loadingSpots = true;
       _sky = null;
@@ -209,6 +213,7 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
               request: SimulationRequest(
                 locationName: _location!.label,
                 event: _sky!.event,
+                eventDate: _searchedOn,
                 cloudCoverSummary: _sky!.cloudCoverSummary,
                 visibilityLikelihood: _sky!.visibilityLikelihood,
                 colorProbabilities: _sky!.colorProbabilities,
@@ -233,6 +238,7 @@ class _TodaySkyScreenState extends State<TodaySkyScreen> {
                     spot: _spots![i],
                     showMatch: _preferences.hasSkyPreference,
                     event: _sky?.event ?? _event,
+                    date: _searchedOn,
                     apiClient: _apiClient,
                   ),
                 ),
@@ -248,6 +254,7 @@ class _SpotCard extends StatelessWidget {
   final LocationResult spot;
   final bool showMatch;
   final SunEvent event;
+  final DateTime date;
   final ApiClient apiClient;
 
   const _SpotCard({
@@ -255,6 +262,7 @@ class _SpotCard extends StatelessWidget {
     required this.spot,
     required this.showMatch,
     required this.event,
+    required this.date,
     required this.apiClient,
   });
 
@@ -326,6 +334,8 @@ class _SpotCard extends StatelessWidget {
                       locationName: spot.name,
                       locationType: spot.type,
                       event: event,
+                      placeId: spot.locationId,
+                      eventDate: date,
                       cloudCoverSummary: spot.cloudCoverSummary,
                       visibilityLikelihood: spot.visibilityLikelihood,
                       colorProbabilities: spot.colorProbabilities,

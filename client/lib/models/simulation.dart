@@ -7,6 +7,12 @@ class SimulationRequest {
   // Null for a place picked on the map, which has no spot type.
   final LocationType? locationType;
   final SunEvent event;
+  // The id of a suggested spot, so the server can add the preview to that
+  // place's shared collection. Null for a searched address or the current
+  // location, which are never shared.
+  final String? placeId;
+  // The day the previewed sky is for (not when the preview is made).
+  final DateTime? eventDate;
   final String cloudCoverSummary;
   final double visibilityLikelihood;
   final ColorProbabilities colorProbabilities;
@@ -15,6 +21,8 @@ class SimulationRequest {
     required this.locationName,
     this.locationType,
     required this.event,
+    this.placeId,
+    this.eventDate,
     required this.cloudCoverSummary,
     required this.visibilityLikelihood,
     required this.colorProbabilities,
@@ -24,10 +32,18 @@ class SimulationRequest {
         'location_name': locationName,
         if (locationType != null) 'location_type': locationType!.apiValue,
         'event': event.apiValue,
+        if (placeId != null) 'place_id': placeId,
+        if (eventDate != null) 'event_date': _formatDate(eventDate!),
         'cloud_cover_summary': cloudCoverSummary,
         'visibility_likelihood': visibilityLikelihood,
         'color_probabilities': colorProbabilities.toJson(),
       };
+
+  static String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
 }
 
 class SimulationResponse {

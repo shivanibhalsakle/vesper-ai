@@ -8,6 +8,7 @@ import 'package:vesper/models/preference_profile.dart';
 import 'package:vesper/models/session_request.dart';
 import 'package:vesper/models/session_response.dart';
 import 'package:vesper/models/sky_forecast.dart';
+import 'package:vesper/models/simulation.dart';
 import 'package:vesper/models/user_preferences.dart';
 import 'package:vesper/screens/best_date_result_screen.dart';
 import 'package:vesper/screens/best_date_screen.dart';
@@ -75,11 +76,33 @@ final _response = BestDateResponse(
 const _taste = PreferenceProfile(goldenOrange: 0.9, clearSky: 0.4);
 const _home = PickedLocation(lat: 40.7, lon: -73.99, label: 'Brooklyn Bridge Park');
 
+// A 1x1 PNG, so Image.memory has something real to decode.
+const _pixel =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
 class _FakeApiClient extends ApiClient {
   UserPreferences? stored;
   Object? bestError;
   final List<BestDateRequest> requests = [];
   final List<UserPreferences> saved = [];
+
+  final List<SimulationRequest> simulationRequests = [];
+
+  @override
+  Future<RemainingPreviews> fetchRemainingPreviews() async =>
+      const RemainingPreviews(remainingToday: 5, dailyLimit: 5);
+
+  @override
+  Future<SimulationResponse> fetchSimulation(SimulationRequest request) async {
+    simulationRequests.add(request);
+    return const SimulationResponse(
+      prompt: 'A sunset',
+      imageUrl: _pixel,
+      disclaimer: 'An AI-generated illustration.',
+      providerStatus: 'generated',
+      remainingToday: 4,
+    );
+  }
 
   @override
   Future<UserPreferences?> fetchPreferences() async => stored;
@@ -123,6 +146,29 @@ void main() {
       expect(find.byKey(const Key('preview-sky')), findsOneWidget);
       // Preference markers: golden/orange and clear sky are turned up.
       expect(find.byKey(const Key('preference-marker')), findsNWidgets(2));
+    });
+
+    testWidgets('the preview names the best spot and the best day', (tester) async {
+      final api = _FakeApiClient();
+      await _pump(
+        tester,
+        BestDateResultScreen(
+          response: _response,
+          preferences: _taste,
+          location: _home,
+          apiClient: api,
+        ),
+      );
+
+      await tester.ensureVisible(find.byKey(const Key('preview-sky')));
+      await tester.tap(find.byKey(const Key('preview-sky')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('preview-generate')));
+      await tester.pumpAndSettle();
+
+      final request = api.simulationRequests.single;
+      expect(request.placeId, 'osm-1');
+      expect(request.eventDate, DateTime(2026, 10, 7));
     });
 
     testWidgets('explains itself when nothing could be scored', (tester) async {

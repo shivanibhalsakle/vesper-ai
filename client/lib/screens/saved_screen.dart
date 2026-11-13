@@ -420,6 +420,7 @@ class _SavedDateDetailState extends State<_SavedDateDetail> {
               request: SimulationRequest(
                 locationName: widget.date.label,
                 event: widget.date.event,
+                eventDate: widget.date.eventDate,
                 cloudCoverSummary: sky.cloudCoverSummary,
                 visibilityLikelihood: sky.visibilityLikelihood,
                 colorProbabilities: sky.colorProbabilities,

@@ -7,6 +7,7 @@ import 'package:vesper/models/preference_profile.dart';
 import 'package:vesper/models/session_request.dart';
 import 'package:vesper/models/session_response.dart';
 import 'package:vesper/models/sky_forecast.dart';
+import 'package:vesper/models/simulation.dart';
 import 'package:vesper/models/user_preferences.dart';
 import 'package:vesper/screens/today_sky_screen.dart';
 import 'package:vesper/services/api_client.dart';
@@ -56,12 +57,34 @@ const _spot = LocationResult(
   explanation: 'Open water view west over the harbour.',
 );
 
+// A 1x1 PNG, so Image.memory has something real to decode.
+const _pixel =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
 class _FakeApiClient extends ApiClient {
   UserPreferences? stored;
   Object? skyError;
   Object? spotsError;
   final List<SkyRequest> skyRequests = [];
   final List<SessionRequest> sessionRequests = [];
+
+  final List<SimulationRequest> simulationRequests = [];
+
+  @override
+  Future<RemainingPreviews> fetchRemainingPreviews() async =>
+      const RemainingPreviews(remainingToday: 5, dailyLimit: 5);
+
+  @override
+  Future<SimulationResponse> fetchSimulation(SimulationRequest request) async {
+    simulationRequests.add(request);
+    return const SimulationResponse(
+      prompt: 'A sunset',
+      imageUrl: _pixel,
+      disclaimer: 'An AI-generated illustration.',
+      providerStatus: 'generated',
+      remainingToday: 4,
+    );
+  }
 
   @override
   Future<UserPreferences?> fetchPreferences() async => stored;
@@ -124,6 +147,41 @@ void main() {
     expect(find.text('Brooklyn Bridge Park'), findsWidgets);
     expect(find.text('Open water view west over the harbour.'), findsOneWidget);
     expect(find.text('77%'), findsOneWidget);
+  });
+
+  testWidgets('A spot preview names the place and the day of the sky', (tester) async {
+    final api = _FakeApiClient()..stored = const UserPreferences(home: _home);
+    await _pump(tester, api);
+    await tester.tap(find.text("Show today's sky"));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('preview-sky')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('preview-generate')));
+    await tester.pumpAndSettle();
+
+    final request = api.simulationRequests.single;
+    final today = DateTime.now();
+    expect(request.placeId, 'osm-1');
+    expect(request.eventDate!.year, today.year);
+    expect(request.eventDate!.month, today.month);
+    expect(request.eventDate!.day, today.day);
+  });
+
+  testWidgets('The preview of the searched place has the day but no place id', (tester) async {
+    final api = _FakeApiClient()..stored = const UserPreferences(home: _home);
+    await _pump(tester, api);
+    await tester.tap(find.text("Show today's sky"));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('preview-sky')).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('preview-generate')));
+    await tester.pumpAndSettle();
+
+    final request = api.simulationRequests.single;
+    expect(request.placeId, isNull); // a searched address is never shared
+    expect(request.eventDate, isNotNull);
   });
 
   testWidgets('Without sky preferences no match score is requested or shown', (tester) async {

@@ -5,6 +5,7 @@ import 'package:vesper/models/saved_date.dart';
 import 'package:vesper/models/session_request.dart';
 import 'package:vesper/models/session_response.dart';
 import 'package:vesper/models/sky_forecast.dart';
+import 'package:vesper/models/simulation.dart';
 import 'package:vesper/models/user_preferences.dart';
 import 'package:vesper/models/preference_profile.dart';
 import 'package:vesper/screens/saved_screen.dart';
@@ -54,6 +55,10 @@ SavedDate _saved(String id, DateTime date,
       notificationEnabled: notify,
     );
 
+// A 1x1 PNG, so Image.memory has something real to decode.
+const _pixel =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
 class _FakeApiClient extends ApiClient {
   List<SavedDate> dates;
   Object? loadError;
@@ -61,6 +66,24 @@ class _FakeApiClient extends ApiClient {
   Object? skyError;
   final List<SavedDateRequest> created = [];
   final List<SkyRequest> skyRequests = [];
+
+  final List<SimulationRequest> simulationRequests = [];
+
+  @override
+  Future<RemainingPreviews> fetchRemainingPreviews() async =>
+      const RemainingPreviews(remainingToday: 5, dailyLimit: 5);
+
+  @override
+  Future<SimulationResponse> fetchSimulation(SimulationRequest request) async {
+    simulationRequests.add(request);
+    return const SimulationResponse(
+      prompt: 'A sunset',
+      imageUrl: _pixel,
+      disclaimer: 'An AI-generated illustration.',
+      providerStatus: 'generated',
+      remainingToday: 4,
+    );
+  }
   final List<String> deleted = [];
   final List<(String, bool)> toggled = [];
 
@@ -132,6 +155,23 @@ void main() {
       expect(find.text('Wednesday, October 7'), findsOneWidget);
       expect(find.text('Thursday, October 1'), findsOneWidget);
       expect(find.textContaining('80% when saved'), findsWidgets);
+    });
+
+    testWidgets('a saved date previews its own day, with no place id', (tester) async {
+      final api = _FakeApiClient([_saved('a', DateTime(2026, 10, 7))]);
+      await _pumpSaved(tester, api);
+      await tester.tap(find.text('Wednesday, October 7'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const Key('preview-sky')));
+      await tester.tap(find.byKey(const Key('preview-sky')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('preview-generate')));
+      await tester.pumpAndSettle();
+
+      final request = api.simulationRequests.single;
+      expect(request.eventDate, DateTime(2026, 10, 7));
+      expect(request.placeId, isNull); // saved dates only keep a label, not a place id
     });
 
     testWidgets('opening a date loads its forecast against your taste', (tester) async {

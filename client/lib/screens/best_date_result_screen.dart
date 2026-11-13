@@ -106,6 +106,8 @@ class BestDateResultScreen extends StatelessWidget {
                       locationName: best.spot?.name ?? location.label,
                       locationType: best.spot?.type,
                       event: best.sky.event,
+                      placeId: best.spot?.locationId,
+                      eventDate: best.date,
                       cloudCoverSummary: best.sky.cloudCoverSummary,
                       visibilityLikelihood: best.sky.visibilityLikelihood,
                       colorProbabilities: best.sky.colorProbabilities,
